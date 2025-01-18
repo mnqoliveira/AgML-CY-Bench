@@ -3,7 +3,7 @@ import pandocfilters as pf
 
 def adjust_paths(key, value, format, meta):
     if key == "Link":
-        prepend_path = "https://github.com/BigDataWUR/AgML-CY-Bench/tree/main/"
+        prepend_path = "https://github.com/WUR-AI/AgML-CY-Bench/tree/main/"
         [[ident, classes, kvs], txt, target] = value
         href, title = target
         # Adjust the href as needed
@@ -14,9 +14,7 @@ def adjust_paths(key, value, format, meta):
         return pf.Link([ident, classes, kvs], txt, [href, title])
     if key == "Image":
         [[ident, classes, kvs], alt, [src, title]] = value
-        prepend_path = (
-            "https://raw.githubusercontent.com/BigDataWUR/AgML-CY-Bench/main/"
-        )
+        prepend_path = "https://raw.githubusercontent.com/WUR-AI/AgML-CY-Bench/main/"
         if not src.startswith(("http://", "https://")):  # Avoid modifying absolute URLs
             src = prepend_path + src
         return pf.Image([ident, classes, kvs], alt, [src, title])

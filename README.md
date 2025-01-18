@@ -87,7 +87,7 @@ table describes the representative crop name as provided in the crop statistics
 #### Installation
 
 ```
-git clone https://github.com/BigDataWUR/AgML-CY-Bench
+git clone https://github.com/WUR-AI/AgML-CY-Bench
 ```
 
 #### Requirements
@@ -104,7 +104,7 @@ poetry install
 You can work with a small sample of the dataset by running
 
 ```
-git clone https://github.com/BigDataWUR/sample_data.git cybench/data
+git clone https://github.com/WUR-AI/sample_data.git cybench/data
 ```
 from the `AgML-CY-Bench` folder.
 

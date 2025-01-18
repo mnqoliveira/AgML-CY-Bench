@@ -695,15 +695,15 @@ def geom_extract(
         out_shape=read_shape,
     )
     # fpar values must be between 0 and 100
-    # See https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_fpar_500m/README.md
+    # See https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_fpar_500m/README.md
     if indicator_name == "fpar":
         indicator_arr[(indicator_arr < 0) | (indicator_arr > 100)] = 0
     # convert Kelvin to Celsius
-    # see https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_AgERA5/README.md
+    # see https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_AgERA5/README.md
     elif indicator_name in ["tmin", "tmax", "tavg"]:
         indicator_arr = indicator_arr - 273.15
     # rescale ndvi
-    # https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
+    # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
     elif indicator_name == "ndvi":
         indicator_arr = (indicator_arr - 50) / 200
 
@@ -736,7 +736,7 @@ def geom_extract(
 
         if afi_thresh is not None:
             # afi must be between 0 and 100
-            # https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_crop_AFIs_ESA_WC/README.md
+            # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_crop_AFIs_ESA_WC/README.md
             afi_arr[(afi_arr < 0) | (afi_arr > 100)] = 0
             if thresh_type == "Fixed":
                 afi_arr[
