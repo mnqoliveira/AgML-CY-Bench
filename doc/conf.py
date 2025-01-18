@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 
 project = "AgML-crop-yield-forecasting"
-copyright = "2024, Wageningen University and Research"
+copyright = "2025, Wageningen University and Research"
 author = "Wageningen University and Research"
 
 # The short X.Y version

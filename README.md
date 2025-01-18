@@ -64,21 +64,23 @@ Undifferentiated Wheat or Winter Wheat where differentiated
 
 #### Deciphering crop names
 
-The terms used to reference different varieties or seasons of maize/wheat has been simplified in CY-Bench. The following
+The terms used to reference different varieties or seasons of maize/wheat have been simplified in CY-Bench. The following
 table describes the representative crop name as provided in the crop statistics
-| Country/Region | Maize | Wheat |
-|--------------------------------------|---------------|------|
-| [EU-EUROSTAT](data_preparation/crop_statistics_EU/README.md) | grain maize| soft wheat|
-| [Africa-FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | maize | -|
-| [Argentina](data_preparation/crop_statistics_AR/README.md) | corn | wheat|
-| [Australia](data_preparation/crop_statistics_AU/README.md)| -| winter wheat|
-| [Brazil](data_preparation/crop_statistics_BR/README.md)| grain corn| grain wheat |
-| [China](data_preparation/crop_statistics_CN/README.md)| grain corn| grain wheat/spring wheat/winter wheat|
-| [Germany](data_preparation/crop_statistics_DE/README.md) | grain maize| winter wheat|
-| [India](data_preparation/crop_statistics_IN/README.md)| maize| wheat|
-| [Mali](data_preparation/crop_statistics_ML/README.md)| maize| -|
-| [Mexico](data_preparation/crop_statistics_MX/README.md)| white/yellow corn| -|
-| [USA](data_preparation/crop_statistics_US/README.md)| grain corn | winter wheat|
+The terms used to reference different varieties or seasons of maize/wheat have been simplified in CY-Bench. The following table describes the representative crop names as provided in the crop statistics:
+
+| Country/Region                                                       | Maize             | Wheat                                 |
+|:---------------------------------------------------------------------|:------------------|:--------------------------------------|
+| [EU-EUROSTAT](data_preparation/crop_statistics_EU/README.md)         | Grain Maize       | Soft Wheat                            |
+| [Africa-FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | Maize             | N/A                                   |
+| [Argentina](data_preparation/crop_statistics_AR/README.md)           | Corn              | Wheat                                 |
+| [Australia](data_preparation/crop_statistics_AU/README.md)           | N/A               | Winter Wheat                          |
+| [Brazil](data_preparation/crop_statistics_BR/README.md)              | Grain Corn        | Grain Wheat                           |
+| [China](data_preparation/crop_statistics_CN/README.md)               | Grain Corn        | Grain/Winter/Spring Wheat             |
+| [Germany](data_preparation/crop_statistics_DE/README.md)             | Grain Maize       | Winter Wheat                          |
+| [India](data_preparation/crop_statistics_IN/README.md)               | Maize             | Wheat                                 |
+| [Mali](data_preparation/crop_statistics_ML/README.md)                | Maize             | N/A                                   |
+| [Mexico](data_preparation/crop_statistics_MX/README.md)              | White/Yellow Corn | N/A                                   |
+| [USA](data_preparation/crop_statistics_US/README.md)                 | Grain Corn        | Winter Wheat                          |
 
 ### Getting started
 
@@ -188,7 +190,7 @@ distributed cluster. The larger countries took approximately 18 hours to complet
 If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
 
 ### Leaderboard
-See [tables inside `results_baselines`](results_baselines/tables/)
+See [tables inside results_baselines](results_baselines/tables/)
 
 #### Data sources
 

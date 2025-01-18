@@ -1,4 +1,4 @@
-.. image:: https://github.com/WUR-AI/AgML-crop-yield-forecasting/actions/workflows/test.yml/badge.svg
+.. image:: https://github.com/WUR-AI/AgML-CY-Bench/actions/workflows/test.yml/badge.svg
 
 .. include:: README.rst
 
