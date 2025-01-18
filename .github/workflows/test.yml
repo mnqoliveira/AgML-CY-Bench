@@ -18,7 +18,7 @@ jobs:
           pip install poetry
           poetry install
 
-          git clone https://github.com/BigDataWUR/sample_data.git ${GITHUB_WORKSPACE}/cybench/data
+          git clone https://github.com/WUR-AI/sample_data.git ${GITHUB_WORKSPACE}/cybench/data
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
