@@ -706,7 +706,15 @@ def geom_extract(
     # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
     elif indicator_name == "ndvi":
         indicator_arr = (indicator_arr - 50) / 200
-
+    if indicator_name in ["sos", "eos"]:
+        max_value = 365
+        if np.ptp(indicator_arr.compressed()) > max_value / 2:
+            # Adjust values for wrap-around
+            adjusted_data = np.where(
+                indicator_arr < max_value / 2, indicator_arr + max_value, indicator_arr
+            )
+            # Convert back to MaskedArray and reapply the original mask
+            indicator_arr = np.ma.masked_array(adjusted_data, mask=indicator_arr.mask)
     geom_mask = indicator_arr.mask
     # skip extraction if no pixels caught by geom
     if np.all(geom_mask):
@@ -775,6 +783,12 @@ def geom_extract(
     # extractions
     if any(val in ("min", "max", "mean", "sum" "std", "mode") for val in stats_out):
         output["stats"] = arr_stats(indicator_arr, afi_arr if afi else None, stats_out)
+        # Apply modulo max_value to all fields in stats
+        if indicator_name in ["sos", "eos"]:
+            output["stats"] = {
+                key: (value % max_value) if isinstance(value, (int, float)) else value
+                for key, value in output["stats"].items()
+            }
 
     if "counts" in stats_out:
         output["counts"] = dict()
