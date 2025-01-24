@@ -1131,7 +1131,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-c", "--crop")
     parser.add_argument("-r", "--region")
-    parser.add_argument("-i", "--indicator")
+    parser.add_argument("-i", "--indicator", nargs="+")
     args = parser.parse_args()
     if args.crop is not None:
         sel_crops = [args.crop]
@@ -1143,7 +1143,7 @@ if __name__ == "__main__":
         sel_regions = [args.region]
 
     if args.indicator is not None:
-        sel_indicators = [args.indicator]
+        sel_indicators = args.indicator
     else:
         sel_indicators = list(ALL_INDICATORS.keys())
 
@@ -1168,3 +1168,4 @@ if __name__ == "__main__":
         for cn in sel_regions:
             print("Working on", crop, cn)
             process_indicators(crop, cn, sel_indicators)
+        sel_regions = args.region
