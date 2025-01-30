@@ -25,6 +25,9 @@ tsai = "^0.3.9"
 torch = "^2.2.2"
 pymannkendall = "^1.4.3"
 urllib3 = "^1.26.6"
+rasterio = "^1.4.3"
+geopandas = "^1.0.1"
+
 
 [build-system]
 requires = ["poetry-core"]
