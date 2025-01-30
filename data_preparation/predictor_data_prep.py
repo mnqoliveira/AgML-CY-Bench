@@ -694,6 +694,8 @@ def geom_extract(
         use_pixels="CENTER",
         out_shape=read_shape,
     )
+    nodatavals = indicator_ds.nodatavals
+
     # fpar values must be between 0 and 100
     # See https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_fpar_500m/README.md
     if indicator_name == "fpar":
@@ -706,6 +708,13 @@ def geom_extract(
     # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
     elif indicator_name == "ndvi":
         indicator_arr = (indicator_arr - 50) / 200
+        # Ensure nodatavals is an iterable
+        if isinstance(nodatavals, (list, tuple)):
+            nodatavals = type(nodatavals)((x - 50) / 200 for x in nodatavals)
+        elif isinstance(nodatavals, np.ndarray):
+            nodatavals = (nodatavals - 50) / 200
+        else:
+            nodatavals = (nodatavals - 50) / 200  # Handle single numeric values
     if indicator_name in ["sos", "eos"]:
         max_value = 365
         if np.ptp(indicator_arr.compressed()) > max_value / 2:
@@ -725,8 +734,8 @@ def geom_extract(
         else:
             raise UnableToExtractStats(e_msg)
     # convert pixel values if ENVI file
-    if indicator_ds.nodatavals:
-        _dtype_conversion = dict(nodata=indicator_ds.nodatavals)
+    if nodatavals:
+        _dtype_conversion = dict(nodata=nodatavals)
     if _dtype_conversion:
         indicator_arr = arr_unpack(indicator_arr, **_dtype_conversion)
     valid_data_mask = indicator_arr.mask
@@ -1130,7 +1139,7 @@ if __name__ == "__main__":
         prog="predictor_data_prep.py", description="Prepare CY-Bench predictor data"
     )
     parser.add_argument("-c", "--crop")
-    parser.add_argument("-r", "--region")
+    parser.add_argument("-r", "--region", type=str, nargs="+", help="List of regions")
     parser.add_argument("-i", "--indicator", nargs="+")
     args = parser.parse_args()
     if args.crop is not None:
@@ -1140,7 +1149,7 @@ if __name__ == "__main__":
 
     sel_regions = None
     if args.region is not None:
-        sel_regions = [args.region]
+        sel_regions = args.region
 
     if args.indicator is not None:
         sel_indicators = args.indicator
