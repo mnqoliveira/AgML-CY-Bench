@@ -704,17 +704,9 @@ def geom_extract(
     # see https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_AgERA5/README.md
     elif indicator_name in ["tmin", "tmax", "tavg"]:
         indicator_arr = indicator_arr - 273.15
-    # rescale ndvi
-    # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
     elif indicator_name == "ndvi":
-        indicator_arr = (indicator_arr - 50) / 200
-        # Ensure nodatavals is an iterable
-        if isinstance(nodatavals, (list, tuple)):
-            nodatavals = type(nodatavals)((x - 50) / 200 for x in nodatavals)
-        elif isinstance(nodatavals, np.ndarray):
-            nodatavals = (nodatavals - 50) / 200
-        else:
-            nodatavals = (nodatavals - 50) / 200  # Handle single numeric values
+        # data cleaning
+        indicator_arr.mask |= (indicator_arr > 250) | (indicator_arr < 50)
     if indicator_name in ["sos", "eos"]:
         max_value = 365
         if np.ptp(indicator_arr.compressed()) > max_value / 2:
@@ -724,6 +716,7 @@ def geom_extract(
             )
             # Convert back to MaskedArray and reapply the original mask
             indicator_arr = np.ma.masked_array(adjusted_data, mask=indicator_arr.mask)
+
     geom_mask = indicator_arr.mask
     # skip extraction if no pixels caught by geom
     if np.all(geom_mask):
@@ -797,6 +790,12 @@ def geom_extract(
             output["stats"] = {
                 key: (value % max_value) if isinstance(value, (int, float)) else value
                 for key, value in output["stats"].items()
+            }
+        if indicator_name == "ndvi":
+            # rescale ndvi
+            # https://github.com/WUR-AI/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
+            output["stats"] = {
+                key: ((value - 50) / 200) for key, value in output["stats"].items()
             }
 
     if "counts" in stats_out:
