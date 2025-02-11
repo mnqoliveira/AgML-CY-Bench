@@ -15,18 +15,11 @@ jobs:
           pip install poetry
           poetry config virtualenvs.in-project true
           poetry install
-      - name: Convert README.rst
+      - name: Write documentation
         run: |
-          cat << EOF > build_docs.sh
-          #!/bin/bash
-          poetry shell  # Activate the Poetry environment
-          pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
-          sphinx-apidoc -o doc ./
-          sphinx-build doc _build -va
-          EOF
-
-          chmod +x build_docs.sh
-          ./build_docs.sh    
+          poetry run pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
+          poetry run sphinx-apidoc -o doc ./
+          poetry run sphinx-build doc _build -va
       - name: Deploy
         if: github.ref == 'refs/heads/main'
         uses: peaceiris/actions-gh-pages@v3
