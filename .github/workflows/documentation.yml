@@ -17,15 +17,14 @@ jobs:
           poetry install
       - name: Convert README.rst
         run: |
-          pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
-          
           cat << EOF > build_docs.sh
           #!/bin/bash
           poetry shell  # Activate the Poetry environment
+          pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
           sphinx-apidoc -o doc ./
           sphinx-build doc _build -va
           EOF
-          
+
           chmod +x build_docs.sh
           ./build_docs.sh    
       - name: Deploy
