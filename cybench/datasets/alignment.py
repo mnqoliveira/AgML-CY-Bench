@@ -55,7 +55,24 @@ def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_T
         the same DataFrame with crop season window information
     """
     df = df[[KEY_LOC] + CROP_CALENDAR_DOYS]
+
     df = df.astype({k: int for k in CROP_CALENDAR_DOYS})
+    # Check for out-of-range values
+    invalid_sos = df[(df["sos"] < 0) | (df["sos"] > 366)]
+    if not invalid_sos.empty:
+        print(
+            f"Found {len(invalid_sos)} rows with out-of-range 'sos' values. Clipping to [1, 365]."
+        )
+
+    df["sos"] = df["sos"].clip(1, 365)
+
+    invalid_eos = df[(df["eos"] < 0) | (df["eos"] > 366)]
+    if not invalid_eos.empty:
+        print(
+            f"Found {len(invalid_eos)} rows with out-of-range 'eos' values. Clipping to [1, 365]."
+        )
+
+    df["eos"] = df["eos"].clip(1, 365)
     df = pd.concat(
         [df.assign(**{KEY_YEAR: yr}) for yr in range(min_year, max_year + 1)],
         ignore_index=True,
