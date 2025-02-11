@@ -60,12 +60,12 @@ def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_T
     # Check for out-of-range values
     invalid_sos = df[(df["sos"] < 0) | (df["sos"] > 366)]
     assert invalid_sos.empty, "Error: Some 'sos' values are out of range [0, 366]!"
-    df["sos"] = df["sos"].clip(1, 365)
+    df["sos"] = df["sos"].clip(1, 366)
 
     invalid_eos = df[(df["eos"] < 0) | (df["eos"] > 366)]
     assert invalid_eos.empty, "Error: Some 'eos' values are out of range [0, 366]!"
 
-    df["eos"] = df["eos"].clip(1, 365)
+    df["eos"] = df["eos"].clip(1, 366)
     df = pd.concat(
         [df.assign(**{KEY_YEAR: yr}) for yr in range(min_year, max_year + 1)],
         ignore_index=True,
