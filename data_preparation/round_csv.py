@@ -19,10 +19,8 @@ def round_with_trailing_zero(value, decimals):
         original_decimal_count = len(significant_decimal_part)
 
         # If the original decimal count is greater than or equal to 3, round to 3 decimals
-        if original_decimal_count >= 3:
-            return (
-                f"{value:.3f}"  # Force 3 decimal places, adding trailing zero if needed
-            )
+        if original_decimal_count >= decimals:
+            return f"{value:.{decimals}f}"  # Force 3 decimal places, adding trailing zero if needed
         else:
             return f"{value:.{original_decimal_count}f}"  # Maintain original decimal places
     else:
