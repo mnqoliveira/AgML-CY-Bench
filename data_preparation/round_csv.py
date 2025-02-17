@@ -3,31 +3,6 @@ import pandas as pd
 import pathlib
 
 
-def round_with_trailing_zero(value, decimals):
-    """Rounds a number to a specific number of decimals, keeping trailing zeros only if the original number had them."""
-
-    # Convert the value to a string in the default format
-    value_str = str(value)
-
-    # Check if there's a decimal point
-    if "." in value_str:
-        # Split the value by the decimal point
-        integer_part, decimal_part = value_str.split(".")
-
-        # Remove trailing zeros from the decimal part to count significant digits
-        significant_decimal_part = decimal_part.rstrip("0")
-        original_decimal_count = len(significant_decimal_part)
-
-        # If the original decimal count is greater than or equal to 3, round to 3 decimals
-        if original_decimal_count >= decimals:
-            return f"{value:.{decimals}f}"  # Force 3 decimal places, adding trailing zero if needed
-        else:
-            return f"{value:.{original_decimal_count}f}"  # Maintain original decimal places
-    else:
-        # If there's no decimal point, return the value as-is
-        return str(value)
-
-
 def round_csv(file_path: pathlib.Path, output_dir: pathlib.Path, decimals: int = 3):
     """Rounds numerical columns in a CSV file while keeping categorical ones intact."""
     df = pd.read_csv(file_path)
@@ -35,9 +10,8 @@ def round_csv(file_path: pathlib.Path, output_dir: pathlib.Path, decimals: int =
     # Detect categorical columns (assume non-numeric columns remain unchanged)
     numeric_cols = df.select_dtypes(include=["float64", "float32"]).columns
 
-    # Apply rounding function to numeric columns using apply
-    for col in numeric_cols:
-        df[col] = df[col].apply(lambda x: round_with_trailing_zero(x, decimals))
+    # Round numeric columns
+    df[numeric_cols] = df[numeric_cols].round(decimals)
 
     # Replicate the subdirectory structure in the output directory
     relative_path = file_path.relative_to(
