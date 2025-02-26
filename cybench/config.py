@@ -183,7 +183,8 @@ GDD_UPPER_LIMIT = {
 # Lead time for forecasting
 # Choices: "middle-of-season", "quarter-of-season",
 # "n-day(s)" where n is an integer
-FORECAST_LEAD_TIME = "middle-of-season"
+# FORECAST_LEAD_TIME = "middle-of-season"
+FORECAST_LEAD_TIME = "0-day"
 
 # Buffer period before the start of season
 SPINUP_DAYS = 90
@@ -192,7 +193,7 @@ SPINUP_DAYS = 90
 PATH_LOGS_DIR = os.path.join(PATH_OUTPUT_DIR, "logs")
 os.makedirs(PATH_LOGS_DIR, exist_ok=True)
 
-LOG_FILE = datetime.now().strftime("agml_cybench_%H_%M_%d_%m_%Y.log")
+LOG_FILE = datetime.now().strftime("agml_cybench_%Y_%m_%d_%H_%M.log")
 LOG_LEVEL = logging.DEBUG
 
 # Based on examples from
