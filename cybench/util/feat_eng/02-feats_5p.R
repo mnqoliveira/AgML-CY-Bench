@@ -6,12 +6,12 @@ libraries <- c("here", "tidyverse", "data.table", "zoo")
 lapply(libraries, require, character.only = TRUE)
 
 # Functions ---------------------------------------------------------------
-source(here("feat_eng_2p_f.R"))
+source(here("feat_eng_5p_f.R"))
 source(here("load_files_f.R"))
 
 # Process -----------------------------------------------------------------
 crop_ <- c("maize")
-country_ <- c("NL")
+country_ <- c("BR")
 
 data_folder <- "../../data/loaded/"
 list_crops <- list.dirs(data_folder, full.names = FALSE)
@@ -52,12 +52,12 @@ filename_ <- grep("meteo", files_list_, value=TRUE)
 meteo <- fread(filename_)
 meteo <- truncate_series(x=copy(meteo), calendar)
 
-tt_das <- def_tt(x=copy(meteo), 
-                 tbase=tbase_, tupper=tupper_, thresholds=thresh_)
+periods_dates <- dates_dvs(x=copy(meteo), 
+                           tbase=tbase_, tupper=tupper_, thresholds=thresh_, calendar)
 print(Sys.time())
 print("tt")
 
-meteo <- generate_set(x=meteo, tt_das)
+meteo <- generate_set(x=meteo, periods_dates)
 
 print(Sys.time())
 print("meteo")
@@ -67,7 +67,7 @@ filename_ <- grep("fpar", files_list_, value=TRUE)
 fpar <- fread(filename_)
 
 fpar <- truncate_series(x=copy(fpar), calendar)
-fpar <- generate_set(x=copy(fpar), tt_das)
+fpar <- generate_set(x=copy(fpar), periods_dates)
 
 print(Sys.time())
 print("fpar")
@@ -78,7 +78,7 @@ num_rows <- length(count.fields(filename_, skip = 0))
 ndvi <- fread(filename_)
 
 ndvi <- truncate_series(x=copy(ndvi), calendar)
-ndvi <- generate_set(x=copy(ndvi), tt_das)
+ndvi <- generate_set(x=copy(ndvi), periods_dates)
 
 print(Sys.time())
 print("ndvi")
@@ -88,14 +88,16 @@ filename_ <- grep("soil_moisture", files_list_, value=TRUE)
 sm <- fread(filename_)
 
 sm <- truncate_series(x=copy(sm), calendar)
-sm <- generate_set(x=copy(sm), tt_das)
+sm <- generate_set(x=copy(sm), periods_dates)
 
 print(Sys.time())
 print("sm")
 
 # Soil characteristics
 soil <- fread(grep("soil_", files_list_[!grepl("moisture", files_list_)],
-                   value=TRUE)) 
+                   value=TRUE)) %>%
+  mutate(awc = round(awc, 4),
+         bulk_density = round(bulk_density, 4))
 # %>%
 #   mutate(drainage_class = as.character(drainage_class))
 # 
@@ -133,12 +135,15 @@ dataset_mod <- dataset %>%
   mutate(across(.cols=starts_with("drainage"), .fns = ~replace_na(.x, 0)),
          across(.cols=-c("adm_id", "year"), .fns = ~na_if(.x, Inf)),
          across(.cols=-c("adm_id", "year"), .fns = ~na_if(.x, -Inf)),
-         flag_period1 = if_else(if_any(ends_with("1"), is.na), 0, 1),
-         flag_period2 = if_else(if_any(ends_with("2"), is.na), 0, 1),
+         flag_period0 = if_else(if_any(ends_with("p0"), is.na), 0, 1),
+         flag_period1 = if_else(if_any(ends_with("p1"), is.na), 0, 1),
+         flag_period2 = if_else(if_any(ends_with("p2"), is.na), 0, 1),
+         flag_period3 = if_else(if_any(ends_with("p3"), is.na), 0, 1),
+         flag_period4 = if_else(if_any(ends_with("p4"), is.na), 0, 1),
+         flag_period5 = if_else(if_any(ends_with("p5"), is.na), 0, 1),
          across(.cols=everything(), .fns = ~replace_na(.x, mean(.x, na.rm=TRUE))),
-         across(.cols=where(is.numeric), .fns = ~round(.x, 4)),
          across(.cols=contains("rad"), .fns = ~round(.x, 0)))
 
 filename <- paste0(crop_it, "_", country_it, ".csv")
-filepath <- paste0("../../data/features/2p/", filename)
+filepath <- paste0("../../data/features/5p/", filename)
 write.csv(dataset_mod, file=filepath, row.names = FALSE)

@@ -84,15 +84,19 @@ def test_both(crop_it, country_it, tech_it, source_it):
     model_preds, _ = model_.predict(test_dataset)
     metrics_ = evaluate_predictions(targets, model_preds)
     
-    return metrics_
-
+    preds = pd.DataFrame({"pred": model_preds, "obs": targets}, index = test_dataset.indices()).reset_index()
+    preds[['adm_id', 'year']] = pd.DataFrame(preds['index'].tolist(), index=None)
+    preds = preds.drop(columns=['index'])
+    
+    return metrics_, preds
 
 crop_l = ["wheat", "maize"]
-crop_l = ["maize"]
+# crop_l = ["wheat"]
 country_l = ["NL"]
 tech_l = ['skrid', 'ridres', 'rf']
+# tech_l = ['skrid', 'ridres']
 #tech_l = ['rf']
-source_l = ["2periods", "orig"]
+source_l = ["5periods", "2periods", "orig"]
 # source_l = ["2periods"]
 
 comb = {'crop': crop_l, 'country': country_l, 'tech': tech_l, 'source': source_l}
@@ -102,8 +106,12 @@ comb.sort_values(by=['country', 'crop', 'tech', 'source'], ascending = [False, F
 
 col_names_ = ['normalized_rmse', 'mape', 'r2', 'technique', 'source', 'crop', 'country', 'time']
 
-filename = "tests_" + str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + ".csv")
+run_name = "tests_" + str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S') )
+filename = run_name + ".csv"
 
+os.makedirs(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name))
+
+it = 2
 for it in range(comb.shape[0]):
     
     crop_it = comb.crop[it]
@@ -111,7 +119,7 @@ for it in range(comb.shape[0]):
     tech_it = comb.tech[it]
     source_it = comb.source[it]
 
-    res_ = test_both(crop_it, country_it, tech_it, source_it)
+    res_, preds_ = test_both(crop_it, country_it, tech_it, source_it)
     
     results = pd.DataFrame([res_])
     
@@ -126,3 +134,8 @@ for it in range(comb.shape[0]):
         header_ = col_names_
 
     results.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", filename), index=False, mode='a', header = header_)
+
+    file_it = "_".join([crop_it, country_it, tech_it, source_it]) + ".csv"
+    preds_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
+    
+    print(crop_it, country_it, tech_it, source_it, sep = ", ")

@@ -58,7 +58,7 @@ def evaluate_predictions(
         metric_function = implemented_metrics.get(metric_name)
         if metric_function:
             result = metric_function(y_true, y_pred)
-            results[metric_name] = result
+            results[metric_name] = np.round(result, 6)
         else:
             raise ValueError(f"Metric function '{metric_name}' not implemented.")
 

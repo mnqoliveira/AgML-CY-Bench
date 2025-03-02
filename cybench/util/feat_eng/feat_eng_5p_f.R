@@ -9,23 +9,22 @@ lapply(libraries, require, character.only = TRUE)
 truncate_series <- function(x, calendar){
   
   x_mod <- merge(x, calendar, all = TRUE)
-  x_mod <- x_mod[, keep := (date >= sos_date) & (date <= eos_date)]
+  x_mod <- x_mod[, lead_date := (sos_date - 30)][, keep := (date >= lead_date) & (date <= eos_date)]
   x_mod <- x_mod[keep == TRUE][, keep := NULL]
   
-  # Create das
-  x_mod[, das := as.numeric(date - sos_date) + 1, by = c("adm_id", "year")]
-  x_mod <- x_mod[, !c("date", "sos_date", "eos_date", "cutoff_date",
-                      "season_window_length")]
+  # Create date
+  x_mod <- x_mod[, !c("cutoff_date", "season_window_length", "lead_date",
+                      "eos_date", "sos_date")]
   
   return(x_mod)
   
 }
 
-def_tt <- function(x, tbase, tupper, thresholds){
-  
-  # Returns das for each predefined threshold of accumulated thermal 
+dates_dvs <- function(x, tbase, tupper, thresholds, calendar){
+
+  # Returns date for each predefined threshold of accumulated thermal 
   # time in the cycle
-  thresholds_name <- paste0("tt", thresholds)
+  thresholds_name <- c("dvs1", "dvs2")
   
   # Version 1: tt larger than tbase and lower than tupper
   # Does not differentiate between "never crossed the threshold because 
@@ -34,84 +33,82 @@ def_tt <- function(x, tbase, tupper, thresholds){
                    ifelse(tavg > tupper, tupper - tbase, tavg - tbase))]
   
   # Calculates accumulated thermal time per season
-  x <- x[order(adm_id, das)][, tt := cumsum(tt), keyby = c("adm_id", "year")]
-  # x <- x[order(adm_id, das)][, ttsum := cumsum(tt), keyby = c("adm_id", "year")]
-  
+  x <- x[order(adm_id, year, date)][, tt_sum := cumsum(tt), keyby = c("adm_id", "year")]
+
   # Prepare threshold columns
   x[, (thresholds_name) := as.list(thresholds
                                       # 0.1*max(tt), 0.25*max(tt), 1/3)*max(tt), 0.5*max(tt), 800
   ),
   keyby = adm_id]
   x[, (thresholds_name) := lapply(.SD, as.numeric), .SDcols = thresholds_name]
-  
+
   # Identifies dates closest to the thresholds
-  x_tt <- data.table::melt(x, id.vars = c("adm_id", "year", "das", "tt"),
-                           measure.vars = thresholds_name, 
+  x_tt <- data.table::melt(x, 
+                           id.vars = c("adm_id", "year", "date", "tt", "tt_sum"),
+                           measure.vars = thresholds_name,
                            variable.name = "accum_tt")
-  x_tt[, dif:= abs(tt-value)][, value := NULL]
-  x_tt[, flag := (dif == min(dif)), keyby = c("adm_id", "year", "accum_tt")]
-  
+  x_tt[, dif:= abs(tt_sum-value)][, value := NULL]
+  x_tt <- x_tt[, flag := (dif == min(dif)), keyby = c("adm_id", "year", "accum_tt")]
   x_tt <- x_tt[flag == TRUE]
+  
   # Retrieves the first row in each group. Likely in case dif leads to more
   # than one date. I don't remember.
   x_tt <- x_tt[x_tt[, .I[flag][1], by = .(adm_id, accum_tt, year)][, V1]]
-  x_tt <- x_tt[, .(adm_id, das, tt, accum_tt, year)]
-  x_tt <- unique(x_tt, by = c("das", "adm_id", "year"))
+  x_tt <- x_tt[, .(adm_id, date, tt, accum_tt, year)]
+  x_tt <- unique(x_tt, by = c("date", "adm_id", "year"))
+  x_tt <- data.table::dcast(x_tt, adm_id + year ~ accum_tt, value.var = "date")
   setkey(x_tt, NULL)
   
-  return(x_tt)
+  # Add periods that surround DVS change dates
+  x_dates <- merge(x_tt, calendar[, !c("cutoff_date", "season_window_length")], 
+                   all = TRUE)
+  setnames(x_dates, old = "sos_date", new = "dvs0")
+  setnames(x_dates, old = "eos_date", new = "eos")
   
+  x_dates <- x_dates[, p0_s := dvs0 - 30][, p0_e := dvs0][, p1_s := dvs0 - 7][, p1_e := dvs0 + 7]
+  x_dates <- x_dates[, p2_s := dvs0][, p2_e := dvs1][, p3_s := dvs1 - 7][, p3_e := dvs1 + 7]
+  x_dates <- x_dates[, p4_s := dvs1][, p4_e := dvs2][, p5_s := dvs2 - 7][, p5_e := max(dvs2 + 7, eos)]
+  x_dates <- x_dates[, !c("dvs0", "dvs1", "dvs2", "eos")]
+  
+  x_periods <- data.table::melt(x_dates, 
+                                id.vars = c("adm_id", "year"),
+                                measure.vars = setdiff(colnames(x_dates), c("adm_id", "year")),
+                                variable.name = "divisions")[order(adm_id, year, divisions)]
+  x_periods <- x_periods[, c("period", "moment") := tstrsplit(divisions, "_")][, divisions := NULL]
+  x_periods <- data.table::dcast(x_periods, adm_id + year + period ~ moment, value.var = "value")
+  
+  return(x_periods)
+
 }
 
-feat_eng <- function(x, tt_das, var_, funcs){
+feat_eng <- function(x, periods_dates, var_, funcs){
   
   # Returns aggregated time-series for each threshold of tt of the variable
-  # tt_das: ID, das and correspondent tt
+  # periods_dates: ID, date and correspondent tt
   # var_: variable to which dataset refers
   
   # Create groups by thresholded period
   
-  cols <- c("adm_id", "year", "das", var_)
-  x_mod <- merge(x[, ..cols], tt_das, by = c("adm_id", "year", "das"), all = TRUE)
-  x_mod <- x_mod[order(adm_id, year, das)]
-  x_mod[, accum_tt := as.numeric(accum_tt)][, tt := NULL]
-  # We will ascribe the groups from last day to first, so we use 99 as a
-  # placeholder for group code to the last day if it exceeded the larger threshold,
-  # carry the value until the previous group code is found and
-  # end x_mod with ID, das, tt value and accum_tt group
-  x_mod[, accum_tt := ifelse(das == max(das) & is.na(accum_tt), 99, accum_tt),
-        keyby = c("adm_id", "year")]
-  x_mod[, accum_tt := zoo::na.locf(accum_tt, fromLast=TRUE)]
-  # Optional to truncate the cycle further as a function of thermal time 
-  # instead of the calendar. Comment to remove this and include the final days as
-  # an additional period.
-  x_mod <- x_mod[accum_tt != 99]
+  cols <- c("adm_id", "year", "date", var_)
+  x_mod <- merge(x[, ..cols], periods_dates, by = c("adm_id", "year"), all = TRUE,
+                 allow.cartesian=TRUE)
+  x_mod <- x_mod[order(adm_id, year, date)][, period_ := ((date >= s) & (date <= e))][period_ == TRUE]
+  x_mod <- x_mod[, !c("e", "s", "period_")]
+  
   setnames(x_mod, old = var_, new = "value")
 
   x_all <- data.table(unique(x_mod[, c("adm_id", "year")]))
   setkey(x_all, NULL) # Remove any grouping
-  
-  if (!is.null(tt_das)){
-
-    if(var_ == "tavg"){
-      # We then add, just for analysis, which day of the cycle corresponds
-      # to the date of each threshold
-      tt_das <- data.table::dcast(tt_das, adm_id + year ~ accum_tt,
-                                  value.var = "das")[, c("adm_id", "year") := NULL]
-      x_all <- cbind(x_all, tt_das)
-    }
-  }
-  
-  rm(tt_das)
   
   # Generates aggregation
   for (func_name in names(funcs)) {
     # Here we generate the aggregated series for each period and
     # join them to the aggregation for the whole season
     x_periods <- x_mod[, .(funcs[[func_name]](value, na.rm=TRUE)), 
-                       by = c("adm_id", "year", "accum_tt")]
+                       by = c("adm_id", "year", "period")]
+    x_periods <- x_periods[, V1 := round(V1, 4)]
     x_periods[, new_name := paste(var_, func_name,
-                                  accum_tt, sep = "_")][, accum_tt := NULL]
+                                  period, sep = "_")][, period := NULL]
     x_periods <- data.table::dcast(x_periods, 
                                    adm_id + year ~ new_name, value.var = "V1")
     setkey(x_periods, NULL)
@@ -120,6 +117,7 @@ feat_eng <- function(x, tt_das, var_, funcs){
     x_full <- x_mod[, .(funcs[[func_name]](value, na.rm=TRUE)), 
                     by = c("adm_id", "year")]
     setkey(x_full, NULL)
+    x_full <- x_full[, V1 := round(V1, 4)]
     x_full[, new_name := paste(var_, func_name, "season", sep = "_")]
     x_full <- data.table::dcast(x_full, adm_id + year ~ new_name, value.var = "V1")
     setkey(x_full, NULL)
@@ -136,16 +134,27 @@ feat_eng <- function(x, tt_das, var_, funcs){
 
 agg_funs <- function(variable_){
   
+  count_extreme <- function(x, na.rm = FALSE) {
+    
+    sd_ <- sd(x, na.rm = na.rm)
+    avg_ <- mean(x, na.rm = na.rm)
+    thresh_inf <- avg_ - sd_
+    thresh_up <- avg_ + sd_
+    count_ <- as.numeric(sum((x > thresh_up) | (x < thresh_inf), na.rm = na.rm))
+    
+    return(count_)
+  }
+  
   if(variable_ == "tavg"){
     funcs <- list("avg" = mean, "min" = min, "max" = max)
   } else if (variable_ == "tmax"){
-    funcs <- list("avg" = mean, "max" = max)
+    funcs <- list("avg" = mean, "max" = max, "count" = count_extreme)
   } else if (variable_ == "tmin"){
-    funcs <- list("avg" = mean, "min" = min)
+    funcs <- list("avg" = mean, "min" = min, "count" = count_extreme)
   } else if (variable_ == "rad"){
     funcs <- list("avg" = mean, "sum" = sum)
   } else if (variable_ == "prec"){
-    funcs <- list("sum" = sum, "sd" = sd)
+    funcs <- list("sum" = sum, "sd" = sd, "count" = count_extreme)
   } else if (variable_ == "et0"){
     funcs <- list("sum" = sum, "max" = max)
   } else if (variable_ == "cwb"){
@@ -155,7 +164,7 @@ agg_funs <- function(variable_){
   } else if (variable_ == "ndvi"){
     funcs <- list("avg" = mean)
   } else if (variable_ == "ssm"){
-    funcs <- list("avg" = mean)
+    funcs <- list("avg" = mean, "count" = count_extreme)
   } else if (variable_ == "rsm"){
       funcs <- list("avg" = mean, "min" = min)
   } else {
@@ -166,21 +175,21 @@ agg_funs <- function(variable_){
   
 }
 
-generate_set <- function(x, tt_das){
+generate_set <- function(x, periods_dates){
   
   list_out <- list()
   
-  cols <- c("adm_id", "year", "das", "crop_name", "date", "doy")
+  cols <- c("adm_id", "year", "date", "crop_name", "date", "doy")
   var_cols <- colnames(x)
   var_cols <- var_cols[!var_cols %in% cols]
   
   list_out <- list()
   
-  var_ <- var_cols[3]
+  var_ <- var_cols[1]
   for(var_ in var_cols){
     
     funcs <- agg_funs(var_)
-    temp <- feat_eng(x, tt_das, var_, funcs)
+    temp <- feat_eng(x, periods_dates, var_, funcs)
     temp <- data.table::melt(temp, id.vars = c("adm_id", "year"))
     
     list_out[[var_]] <- temp
