@@ -146,4 +146,3 @@ dataset_mod <- dataset %>%
 
 filename <- paste0(crop_it, "_", country_it, ".csv")
 filepath <- paste0("../../data/features/5p/", filename)
-write.csv(dataset_mod, file=filepath, row.names = FALSE)

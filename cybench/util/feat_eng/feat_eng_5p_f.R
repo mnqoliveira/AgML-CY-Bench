@@ -203,4 +203,3 @@ generate_set <- function(x, periods_dates){
   return(list_out)
   
 }
-
