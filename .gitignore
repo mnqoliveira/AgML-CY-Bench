@@ -20,3 +20,7 @@ api_keys
 *.zip
 *.pkl
 Scratch.R
+load_env.R
+poetry.lock
+00-prep_init.R
+*.code-workspace

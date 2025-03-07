@@ -10,8 +10,8 @@ source(here("feat_eng_2p_f.R"))
 source(here("load_files_f.R"))
 
 # Process -----------------------------------------------------------------
-crop_ <- c("maize")
-country_ <- c("NL")
+crop_ <- "wheat"
+country_ <- "NL"
 
 data_folder <- "../../data/loaded/"
 list_crops <- list.dirs(data_folder, full.names = FALSE)

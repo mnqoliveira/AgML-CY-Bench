@@ -15,13 +15,15 @@ from cybench.config import (
 )
 
 def save_loaded():
-    crop_it = "wheat"
-    country_it = "BR"
+    crop_it = "maize"
+    country_it = "FR"
     crop_country = crop_it + "_" + country_it
 
     dataset_ = Dataset.load(crop_country)
 
     dfs_x = dataset_._dfs_x
+    os.makedirs(os.path.join(PATH_DATA_DIR, "loaded", crop_it, country_it))
+    
     for x, df in dfs_x.items():
         filename = x + "_" + crop_it + "_" + country_it + ".csv"
         df.to_csv(os.path.join(PATH_DATA_DIR, "loaded", crop_it, country_it, filename), index=True)
