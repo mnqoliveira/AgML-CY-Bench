@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from datetime import datetime
+from collections.abc import Iterable
 
 from cybench.config import (
     KEY_LOC,
@@ -8,7 +9,13 @@ from cybench.config import (
     KEY_DATES,
     GDD_BASE_TEMP,
     GDD_UPPER_LIMIT,
+    
+    KEY_TARGET,
+    SOIL_PROPERTIES,
+    TIME_SERIES_INPUTS,
 )
+
+from cybench.util.data import data_to_pandas
 
 
 def fortnight_from_date(dt: datetime):
@@ -382,3 +389,200 @@ def design_features(
         all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
 
     return all_fts
+
+
+def design_features_mod(
+    crop: str,
+    input_dfs: dict,
+):
+    """Design features based domain expertise.
+
+    Args:
+      crop (str): crop name, e.g. maize
+      input_dfs (dict): keys are input names, values are pd.DataFrames
+
+    Returns:
+      pd.DataFrame of features
+    """
+    assert "soil" in input_dfs
+    soil_df = input_dfs["soil"]
+    if "drainage_class" in soil_df.columns:
+        soil_df["drainage_class"] = soil_df["drainage_class"].astype(str)
+        # one hot encoding for categorical data
+        soil_one_hot = pd.get_dummies(soil_df, prefix="drainage")
+        soil_df = pd.concat([soil_df, soil_one_hot], axis=1).drop(
+            columns=["drainage_class"]
+        )
+    else:
+        soil_features = soil_df
+
+    # Feature design for time series
+    index_cols = [KEY_LOC, KEY_YEAR]
+    period_length = "month"
+    assert "meteo" in input_dfs
+    weather_df = input_dfs["meteo"]
+    weather_df = _add_period(weather_df, period_length)
+
+    fpar_df = None
+    if "fpar" in input_dfs:
+        fpar_df = input_dfs["fpar"]
+        fpar_df = _add_period(fpar_df, period_length)
+
+    ndvi_df = None
+    if "ndvi" in input_dfs:
+        ndvi_df = input_dfs["ndvi"]
+        ndvi_df = _add_period(ndvi_df, period_length)
+
+    soil_moisture_df = None
+    if "soil_moisture" in input_dfs:
+        soil_moisture_df = input_dfs["soil_moisture"]
+        soil_moisture_df = _add_period(soil_moisture_df, period_length)
+
+    # cumlative sums
+    weather_df = weather_df.sort_values(by=index_cols + ["period"])
+
+    # Daily growing degree days
+    # gdd_daily = max(0, tavg - tbase)
+    # TODO: replace None in clip(0.0, None) with upper threshold.
+    weather_df["tavg"] = weather_df["tavg"].astype(float)
+    weather_df["gdd"] = (weather_df["tavg"] - GDD_BASE_TEMP[crop]).clip(
+        0.0, GDD_UPPER_LIMIT[crop]
+    )
+    weather_df["cum_gdd"] = weather_df.groupby(index_cols, observed=True)[
+        "gdd"
+    ].cumsum()
+    weather_df["cwb"] = weather_df["cwb"].astype(float)
+    weather_df["prec"] = weather_df["prec"].astype(float)
+    weather_df = weather_df.sort_values(by=index_cols + ["date"])
+    weather_df["cum_cwb"] = weather_df.groupby(index_cols, observed=True)[
+        "cwb"
+    ].cumsum()
+    weather_df["cum_prec"] = weather_df.groupby(index_cols, observed=True)[
+        "prec"
+    ].cumsum()
+
+    if fpar_df is not None:
+        fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
+        fpar_df["fpar"] = fpar_df["fpar"].astype(float)
+        fpar_df["cum_fpar"] = fpar_df.groupby(index_cols, observed=True)[
+            "fpar"
+        ].cumsum()
+
+    if ndvi_df is not None:
+        ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
+        ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
+        ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols, observed=True)[
+            "ndvi"
+        ].cumsum()
+
+    # Aggregate by period
+    avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
+    max_weather_cols = ["cum_gdd", "cum_prec"]
+    avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
+    max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
+    avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
+    max_ft_cols = {ind: "max_" + ind for ind in max_weather_cols}
+
+    # NOTE: combining max and avg aggregation
+    weather_aggrs = {
+        **avg_weather_aggrs,
+        **max_weather_aggrs,
+    }
+
+    weather_fts = _aggregate_by_period(
+        weather_df, index_cols, "period", weather_aggrs, {**avg_ft_cols, **max_ft_cols}
+    )
+
+    # count_thresh_cols = {
+    #     "tmin": ["<", "0"],  # degrees
+    #     "tmax": [">", "35"],  # degrees
+    #     "prec": ["<", "1"],  # mm (0 does not make sense, prec is always positive)
+    # }
+    # 
+    # # count time steps matching threshold conditions
+    # for ind, thresh in count_thresh_cols.items():
+    #     threshold_exceed = thresh[0]
+    #     threshold = float(thresh[1])
+    #     if "_" in ind:
+    #         ind = ind.split("_")[0]
+    # 
+    #     ft_name = ind + "".join(thresh)
+    #     ind_fts = _count_threshold(
+    #         weather_df,
+    #         index_cols,
+    #         "period",
+    #         ind,
+    #         threshold_exceed,
+    #         threshold,
+    #         ft_name,
+    #     )
+    # 
+    #     weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
+    #     weather_fts = weather_fts.fillna(0.0)
+
+    all_fts = soil_features.merge(weather_fts, on=[KEY_LOC])
+    if fpar_df is not None:
+        fpar_fts = _aggregate_by_period(
+            fpar_df,
+            index_cols,
+            "period",
+            {"cum_fpar": "max"},
+            {"cum_fpar": "max_cum_fpar"},
+        )
+        all_fts = all_fts.merge(fpar_fts, on=index_cols)
+
+    if ndvi_df is not None:
+        ndvi_fts = _aggregate_by_period(
+            ndvi_df,
+            index_cols,
+            "period",
+            {"cum_ndvi": "max"},
+            {"cum_ndvi": "max_cum_ndvi"},
+        )
+        all_fts = all_fts.merge(ndvi_fts, on=index_cols)
+
+    if soil_moisture_df is not None:
+        soil_moisture_fts = _aggregate_by_period(
+            soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
+        )
+        all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
+
+    return all_fts
+
+
+def skl_design(crop: str, data_items: Iterable, mode: str):
+        """Design features using data samples.
+
+        Args:
+          crop (str): crop name
+          data_items (Iterable): a Dataset or list of data items.
+
+        Returns:
+          A pandas dataframe with KEY_LOC, KEY_YEAR and features.
+        """
+        # static data is repeated for every year. Drop duplicates.
+        assert len(SOIL_PROPERTIES) > 0
+        soil_df = data_to_pandas(data_items, data_cols=[KEY_LOC] + SOIL_PROPERTIES)
+        soil_df = soil_df.drop_duplicates()
+
+        dfs_x = {"soil": soil_df}
+        for x, ts_cols in TIME_SERIES_INPUTS.items():
+            df_ts = data_to_pandas(
+                data_items, data_cols=[KEY_LOC, KEY_YEAR] + [KEY_DATES] + ts_cols
+            )
+            df_ts = unpack_time_series(df_ts, ts_cols)
+            # fill in NAs
+            df_ts = df_ts.astype({k: "float" for k in ts_cols})
+            df_ts = (
+                df_ts.set_index([KEY_LOC, KEY_YEAR, "date"])
+                .sort_index()
+                .interpolate(method="linear")
+            )
+            dfs_x[x] = df_ts.reset_index()
+
+        if mode == "orig":
+            features = design_features(crop, dfs_x)
+        else:
+            features = design_features_mod(crop, dfs_x)
+
+        return features

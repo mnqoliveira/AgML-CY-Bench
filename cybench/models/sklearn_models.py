@@ -79,19 +79,23 @@ class BaseSklearnModel(BaseModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         # NOTE: We want to support a dataset with pre-designed features.
-        if self._predesigned_features:
-            train_data = data_to_pandas(dataset)
-            train_years = dataset.years
-        else:
-            train_features = self._design_features(dataset.crop, dataset)
-            train_labels = data_to_pandas(
-                dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
-            )
-            self._feature_cols = [
-                ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
-            ]
-            train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
-            train_years = sorted(train_data[KEY_YEAR].unique())
+        # if self._predesigned_features:
+        #     train_data = data_to_pandas(dataset)
+        #     train_years = dataset.years
+        # else:
+        #     train_features = self._design_features(dataset.crop, dataset)
+        #     train_labels = data_to_pandas(
+        #         dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+        #     )
+        #     self._feature_cols = [
+        #         ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
+        #     ]
+        #     train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
+        #     train_years = sorted(train_data[KEY_YEAR].unique())
+
+        train_data = dataset
+        train_years = sorted(train_data[KEY_YEAR].unique())
+        # train_years = dataset.years
 
         X = train_data[self._feature_cols].values
         y = train_data[KEY_TARGET].values
@@ -225,22 +229,23 @@ class BaseSklearnModel(BaseModel):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        if self._predesigned_features:
-            test_data = data_to_pandas(data_items)
-        else:
-            test_features = self._design_features(crop, data_items)
-            test_labels = data_to_pandas(
-                data_items, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
-            )
-            # Check features are the same for training and test data
-            ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
-            missing_features = [ft for ft in self._feature_cols if ft not in ft_cols]
-            for ft in missing_features:
-                test_features[ft] = 0.0
+        # if self._predesigned_features:
+        #     test_data = data_to_pandas(data_items)
+        # else:
+        #     test_features = self._design_features(crop, data_items)
+        #     test_labels = data_to_pandas(
+        #         data_items, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+        #     )
+        #     # Check features are the same for training and test data
+        #     ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
+        #     missing_features = [ft for ft in self._feature_cols if ft not in ft_cols]
+        #     for ft in missing_features:
+        #         test_features[ft] = 0.0
 
-            test_features = test_features[[KEY_LOC, KEY_YEAR] + self._feature_cols]
-            test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
+        #     test_features = test_features[[KEY_LOC, KEY_YEAR] + self._feature_cols]
+        #     test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
 
+        test_data = data_items
         X_test = test_data[self._feature_cols].values
 
         return self._est.predict(X_test), {}
@@ -255,7 +260,7 @@ class BaseSklearnModel(BaseModel):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        return self._predict(dataset.crop, dataset)
+        return self._predict("placeholder", dataset)
 
     def predict_items(self, X: list, crop=None, **predict_params):
         """Run fitted model on a list of data items.
@@ -319,6 +324,11 @@ class SklearnRidge(BaseSklearnModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
+        
+        # max_ = len(train_dataset.feature_names)
+        # nfeat = np.trunc(np.arange(0.2,0.75,0.1)*max_).astype(int).tolist()
+        # print(nfeat, max_, train_dataset.feature_names)
+        
         fit_params["select_features"] = True
         fit_params["optimize_hyperparameters"] = True
         fit_params["param_space"] = {
@@ -359,3 +369,33 @@ class SklearnRandomForest(BaseSklearnModel):
         }
 
         super().fit(train_dataset, **fit_params)
+
+# class SklearnMLP(BaseSklearnModel):
+#     def __init__(self, feature_cols: list = None):
+#         mlp = RandomForestRegressor(
+#             oob_score=True, n_estimators=100, min_samples_leaf=5
+#         )
+# 
+#         kwargs = {
+#             "feature_cols": feature_cols,
+#             "estimator": mlp,
+#         }
+# 
+#         super().__init__(**kwargs)
+# 
+#     def fit(self, train_dataset: Dataset, **fit_params):
+#         """Fit or train the model.
+# 
+#         Args:
+#           train_dataset (Dataset): training dataset
+#           **fit_params: Additional parameters.
+# 
+#         Returns:
+#           A tuple containing the fitted model and a dict with additional information.
+#         """
+#         fit_params["optimize_hyperparameters"] = True
+#         fit_params["param_space"] = {
+#             "estimator__n_estimators": [50, 100, 500],
+#         }
+# 
+#         super().fit(train_dataset, **fit_params)

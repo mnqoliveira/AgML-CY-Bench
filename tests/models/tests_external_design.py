@@ -13,6 +13,11 @@ from cybench.models.residual_models import RidgeRes
 # from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import evaluate_predictions
 
+from cybench.util.data import data_to_pandas
+from cybench.util.features import (
+    skl_design
+)
+
 from cybench.config import PATH_DATA_DIR, PATH_OUTPUT_DIR
 from cybench.config import (
     KEY_LOC,
@@ -20,7 +25,6 @@ from cybench.config import (
     KEY_TARGET,
     KEY_COMBINED_FEATURES
 )
-
 
 def test_both(crop_it, country_it, tech_it, source_it):
     
@@ -35,15 +39,44 @@ def test_both(crop_it, country_it, tech_it, source_it):
     test_years = list(range(2015, 2021))
     train_years = [yr for yr in all_years if yr not in test_years]
     
-    if source_it == "orig":
-        # Test 1: Test with raw data
+    if "orig" in source_it:
+        
         dataset_ = Dataset.load(crop_country)
         train_years = [yr for yr in all_years if yr not in test_years]
         train_dataset, test_dataset = dataset_.split_on_years(
             (train_years, test_years)
             )
-        feat_cols_=None
-    
+        crop = dataset_.crop
+        
+        if "mod" in source_it:
+            train_features = skl_design(crop, train_dataset, "mod")
+            test_features = skl_design(crop, test_dataset, "mod")
+            
+        else:
+            train_features = skl_design(crop, train_dataset, "orig")
+            test_features = skl_design(crop, test_dataset, "orig")
+        
+        train_labels = data_to_pandas(
+            dataset_, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+        )
+        feat_cols_ = [
+            ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
+        ]
+        
+        train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
+        
+        test_labels = data_to_pandas(
+            test_dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+        )
+        # Check features are the same for training and test data
+        ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
+        missing_features = [ft for ft in feat_cols_ if ft not in ft_cols]
+        for ft in missing_features:
+            test_features[ft] = 0.0
+
+        test_features = test_features[[KEY_LOC, KEY_YEAR] + feat_cols_]
+        test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
+        
     else:
         # Test 2: Test with predesigned features
         if source_it == "2periods":
@@ -51,13 +84,13 @@ def test_both(crop_it, country_it, tech_it, source_it):
         else:
             data_path = os.path.join(PATH_DATA_DIR, "features", "5p")
         
-        # Training dataset
         train_csv = os.path.join(data_path, (crop_country + ".csv"))
         train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
 
         train_yields = train_df[[KEY_TARGET]].copy()
         feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
         train_features = train_df[feature_cols].copy()
+        
         train_dataset = Dataset(
             crop_it, train_yields, {KEY_COMBINED_FEATURES: train_features}
         )
@@ -65,6 +98,9 @@ def test_both(crop_it, country_it, tech_it, source_it):
             (train_years, test_years)
         )
         feat_cols_=feature_cols
+        train_data = data_to_pandas(train_dataset)
+        
+        test_data = data_to_pandas(test_dataset)
     
     targets = test_dataset.targets()
     
@@ -72,16 +108,28 @@ def test_both(crop_it, country_it, tech_it, source_it):
         model_ = SklearnRidge(feature_cols=feat_cols_)
         tech_ = "SklearnRidge"
     
-    elif tech_it == "ridres":
-        model_ = RidgeRes(feature_cols=feat_cols_)
-        tech_ = "RidgeRes"
+    # elif tech_it == "ridres":
+    #     model_ = RidgeRes(feature_cols=feat_cols_)
+    #     tech_ = "RidgeRes"
     
     elif tech_it == "rf":
         model_ = SklearnRandomForest(feature_cols=feat_cols_)
         tech_ = "RF"
+        
+    elif tech_it == "naive":
+        model_ = AverageYieldModel()
+        tech_ = "Naive"
+        train_data = train_dataset
+        test_data = test_dataset
+        
+    elif tech_it == "trend":
+        model_ = TrendModel()
+        tech_ = "Trend"
+        train_data = train_dataset
+        test_data = test_dataset
 
-    model_.fit(train_dataset)
-    model_preds, _ = model_.predict(test_dataset)
+    model_.fit(train_data)
+    model_preds, _ = model_.predict(test_data)
     metrics_ = evaluate_predictions(targets, model_preds)
     
     preds = pd.DataFrame({"pred": model_preds, "obs": targets}, index = test_dataset.indices()).reset_index()
@@ -93,10 +141,10 @@ def test_both(crop_it, country_it, tech_it, source_it):
 crop_l = ["wheat", "maize"]
 # crop_l = ["wheat"]
 country_l = ["NL"]
-tech_l = ['skrid', 'ridres', 'rf']
+# tech_l = ['skrid', 'ridres', 'rf']
 # tech_l = ['skrid', 'ridres']
-#tech_l = ['rf']
-source_l = ["5periods", "2periods", "orig"]
+tech_l = ['naive', 'trend', 'skrid', 'rf']
+source_l = ["5periods", "2periods", "orig", "orig_mod"]
 # source_l = ["2periods"]
 
 comb = {'crop': crop_l, 'country': country_l, 'tech': tech_l, 'source': source_l}
