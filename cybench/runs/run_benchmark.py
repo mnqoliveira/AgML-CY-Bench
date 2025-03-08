@@ -25,7 +25,6 @@ from cybench.models.nn_models import (
     BaselineInceptionTime,
     BaselineTransformer,
 )
-from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
     RidgeRes,
