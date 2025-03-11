@@ -445,21 +445,21 @@ def design_features_mod(
     # gdd_daily = max(0, tavg - tbase)
     # TODO: replace None in clip(0.0, None) with upper threshold.
     weather_df["tavg"] = weather_df["tavg"].astype(float)
-    weather_df["gdd"] = (weather_df["tavg"] - GDD_BASE_TEMP[crop]).clip(
-        0.0, GDD_UPPER_LIMIT[crop]
-    )
-    weather_df["cum_gdd"] = weather_df.groupby(index_cols, observed=True)[
-        "gdd"
-    ].cumsum()
+    # weather_df["gdd"] = (weather_df["tavg"] - GDD_BASE_TEMP[crop]).clip(
+    #     0.0, GDD_UPPER_LIMIT[crop]
+    # )
+    # weather_df["cum_gdd"] = weather_df.groupby(index_cols, observed=True)[
+    #     "gdd"
+    # ].cumsum()
     weather_df["cwb"] = weather_df["cwb"].astype(float)
     weather_df["prec"] = weather_df["prec"].astype(float)
     weather_df = weather_df.sort_values(by=index_cols + ["date"])
-    weather_df["cum_cwb"] = weather_df.groupby(index_cols, observed=True)[
-        "cwb"
-    ].cumsum()
-    weather_df["cum_prec"] = weather_df.groupby(index_cols, observed=True)[
-        "prec"
-    ].cumsum()
+    # weather_df["cum_cwb"] = weather_df.groupby(index_cols, observed=True)[
+    #     "cwb"
+    # ].cumsum()
+    # weather_df["cum_prec"] = weather_df.groupby(index_cols, observed=True)[
+    #     "prec"
+    # ].cumsum()
 
     if fpar_df is not None:
         fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
@@ -478,6 +478,7 @@ def design_features_mod(
     # Aggregate by period
     avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
     max_weather_cols = ["cum_gdd", "cum_prec"]
+    max_weather_cols = []
     avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
     max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
     avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
