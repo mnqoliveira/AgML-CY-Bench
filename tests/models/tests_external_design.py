@@ -143,7 +143,7 @@ crop_l = ["wheat", "maize"]
 country_l = ["NL"]
 # tech_l = ['skrid', 'ridres', 'rf']
 # tech_l = ['skrid', 'ridres']
-tech_l = ['naive', 'trend', 'skrid', 'rf']
+tech_l = ['naive', 'skrid', 'rf']
 source_l = ["5periods", "2periods", "orig", "orig_mod"]
 # source_l = ["2periods"]
 
