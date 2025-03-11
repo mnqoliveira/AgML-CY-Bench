@@ -209,7 +209,7 @@ def process_crop_seasons(
 
     keep_mask = valid_date_ranges & season_length_valid  # Initial mask
 
-    return keep_mask, years, season_window_values
+    return keep_mask, years
 
 
 def align_to_crop_season_window_numpy(
@@ -225,7 +225,7 @@ def align_to_crop_season_window_numpy(
     """
     Aligns time series data using NumPy arrays and full vectorization, with optimized memory.
     """
-    keep_mask, years, season_window_length = process_crop_seasons(
+    keep_mask, years = process_crop_seasons(
         locs,
         years,
         dates,
@@ -241,23 +241,55 @@ def align_to_crop_season_window_numpy(
             KEY_LOC: locs,
             KEY_YEAR: years,
             "date": dates,
-            "season_window_length": season_window_length,
         }
     )
     grouped = df_minimal.groupby([KEY_LOC, KEY_YEAR], observed=True).agg(
-        {"date": ["min", "max"], "season_window_length": "first"}
+        {
+            "date": ["min", "max"],
+        }
     )
-    grouped.columns = ["date_min", "date_max", "season_window_length"]
-    invalid_seasons = (grouped["date_max"] - grouped["date_min"]).dt.days < grouped[
-        "season_window_length"
-    ]
-    invalid_season_pairs = set(grouped.index[invalid_seasons])
-    if invalid_season_pairs:
+    grouped.columns = ["date_min", "date_max"]
+    # Extract adm_id and year as NumPy arrays
+    grouped_adm_ids = grouped.index.get_level_values(0)
+    grouped_years = grouped.index.get_level_values(1)
+    # Convert grouped DataFrame columns to NumPy arrays for fast operations
+    date_min = grouped["date_min"].values.astype("datetime64[D]")
+    date_max = grouped["date_max"].values.astype("datetime64[D]")
+
+    # Get corresponding indices in the cutoff_dates and season_window_lengths arrays
+    crop_indices = np.array(
+        [
+            crop_season_keys.get((adm, yr), -1)
+            for adm, yr in zip(grouped_adm_ids, grouped_years)
+        ]
+    )
+
+    # Mask for valid crop indices (i.e., those that exist in crop_season_keys)
+    valid_mask = crop_indices != -1
+
+    # Initialize condition arrays with False
+    valid_start = np.zeros_like(valid_mask, dtype=bool)
+    valid_end = np.zeros_like(valid_mask, dtype=bool)
+
+    tolerance = np.timedelta64(10, "D")  # indicators may not come in daily timesteps
+    valid_start[valid_mask] = date_min[valid_mask] - tolerance < (
+        cutoff_dates[crop_indices[valid_mask]]
+        - season_window_lengths[crop_indices[valid_mask]].astype("timedelta64[D]")
+    )
+    valid_end[valid_mask] = (
+        date_max[valid_mask] + tolerance >= cutoff_dates[crop_indices[valid_mask]]
+    )
+    invalid_season_mask = (~valid_start) | (~valid_end)
+    invalid_season_pairs = grouped.index[invalid_season_mask]
+
+    if not invalid_season_pairs.empty:
         grouped_indices = df_minimal.groupby([KEY_LOC, KEY_YEAR], observed=True).indices
-        invalid_indices = np.concatenate(
-            [grouped_indices[k] for k in invalid_season_pairs if k in grouped_indices]
-        )
-        keep_mask[invalid_indices] = False
+        invalid_indices = [
+            grouped_indices[k] for k in invalid_season_pairs if k in grouped_indices
+        ]
+        if invalid_indices:
+            invalid_indices = np.concatenate(invalid_indices)
+            keep_mask[invalid_indices] = False
 
     return keep_mask, years
 
@@ -303,9 +335,16 @@ def align_to_crop_season_window(df: pd.DataFrame, crop_season_df: pd.DataFrame):
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
         "max"
     )
-    df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_window_length"]]
-    # Keep season_window_length, i.e. season_length + SPINUP_DAYS - cutoff_days
-    df = df[(df["cutoff_date"] - df["date"]).dt.days <= df["season_window_length"]]
+
+    tolerance = pd.Timedelta(days=10)  # Define tolerance as 10 days
+
+    df = df[
+        (
+            (df["min_date"] - tolerance)
+            < (df["cutoff_date"] - df["season_window_length"].astype("timedelta64[D]"))
+        )
+        & ((df["max_date"] + tolerance) > df["cutoff_date"])
+    ]
 
     # Trim to lead time
     df = df[df["date"] <= df["cutoff_date"]]
