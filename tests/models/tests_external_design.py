@@ -136,7 +136,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
     preds[['adm_id', 'year']] = pd.DataFrame(preds['index'].tolist(), index=None)
     preds = preds.drop(columns=['index'])
     
-    return metrics_, preds
+    return metrics_, preds, train_data, test_data
 
 crop_l = ["wheat", "maize"]
 # crop_l = ["wheat"]
@@ -167,7 +167,7 @@ for it in range(comb.shape[0]):
     tech_it = comb.tech[it]
     source_it = comb.source[it]
 
-    res_, preds_ = test_both(crop_it, country_it, tech_it, source_it)
+    res_, preds_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
     
     results = pd.DataFrame([res_])
     
@@ -185,5 +185,12 @@ for it in range(comb.shape[0]):
 
     file_it = "_".join([crop_it, country_it, tech_it, source_it]) + ".csv"
     preds_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
+    
+    if tech_it != "naive":
+        file_it = "_".join(["train", crop_it, country_it, tech_it, source_it]) + ".csv"
+        train_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
+        
+        file_it = "_".join(["test", crop_it, country_it, tech_it, source_it]) + ".csv"
+        test_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
     
     print(crop_it, country_it, tech_it, source_it, sep = ", ")
