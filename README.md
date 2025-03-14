@@ -83,8 +83,7 @@ The terms used to reference different varieties or seasons of maize/wheat have b
 | [USA](data_preparation/crop_statistics_US/README.md)                 | Grain Corn        | Winter Wheat                          |
 
 #### Targets
-![Wheat Yield Map](doc/images/wheat_yield.gif)
-![Maize Yield Map](doc/images/maize_yield.gif)
+![Yield Map](doc/images/yield_wheat_maize.gif)
 
 ### Getting started
 
