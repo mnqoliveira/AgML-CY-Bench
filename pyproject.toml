@@ -31,6 +31,7 @@ pandocfilters = "^1.5.1"
 sphinx-rtd-theme = "^3.0.2"
 sphinx = "7.4.7"
 pathlib = "^1.0.1"
+fastcore = "1.7.29"
 
 
 [build-system]

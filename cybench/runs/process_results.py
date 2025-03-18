@@ -56,10 +56,19 @@ def results_to_residuals(model_names):
 
 # Function to format rows with the minimum value in bold
 def format_row(row, metric):
-    if metric == "r2":
+    _, name = row.name  # Extract the second element of the tuple
+    if metric in {"r2", "r"}:
         highlight_value = row.max()
     else:
         highlight_value = row.min()
+
+    if name == "ALL":
+        return " ".join(
+            [
+                f"***{value:.2f}***" if value == highlight_value else f"*{value:.2f}*"
+                for value in row
+            ]
+        )  # Italicize entire row and bold the highlight value
 
     return " ".join(
         [
@@ -81,6 +90,9 @@ def df_to_markdown(df, formatted_df):
 
     for idx, formatted_row in formatted_df.items():
         crop, country = idx
+        if country == "ALL":
+            crop = f"*{crop}*"
+            country = f"*{country}*"
         row_values = [crop, country] + formatted_row.split()
         table.append(f"| " + " | ".join(row_values) + " |")
 
