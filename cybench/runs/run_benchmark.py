@@ -321,6 +321,14 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--run-name")
     parser.add_argument("-d", "--dataset-name")
     parser.add_argument("-m", "--mode")
+    parser.add_argument(
+        "-y",
+        "--years",
+        nargs="+",
+        type=str,
+        default=None,
+        help="Test year(s)",
+    )
     args = parser.parse_args()
     dataset_name = args.dataset_name
     assert dataset_name is not None
@@ -329,6 +337,12 @@ if __name__ == "__main__":
         run_name = args.run_name
     else:
         run_name = dataset_name
+
+    if args.years is None or [y.lower() for y in args.years] in (["none"], ["all"]):
+        args.years = None
+    else:
+        args.years = [int(y) for y in args.years]
+    sel_years = args.years
 
     if (args.mode is not None) and args.mode == "test":
         # skipping some models
@@ -349,7 +363,9 @@ if __name__ == "__main__":
             nn_models_epochs=nn_models_epochs,
         )
     else:
-        results = run_benchmark(run_name=run_name, dataset_name=dataset_name)
+        results = run_benchmark(
+            run_name=run_name, dataset_name=dataset_name, sel_years=sel_years
+        )
 
     df_metrics = results["df_metrics"].reset_index()
     print(
