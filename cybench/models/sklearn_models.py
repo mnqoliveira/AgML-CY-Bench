@@ -1,12 +1,13 @@
 import pickle
 import numpy as np
 import logging
+from scipy.stats import randint, uniform
 from collections.abc import Iterable
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import SelectFromModel
-from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.model_selection import GridSearchCV, GroupKFold, RandomizedSearchCV
 from sklearn.pipeline import Pipeline
 
 from cybench.models.model import BaseModel
@@ -168,7 +169,8 @@ class BaseSklearnModel(BaseModel):
             cv = group_kfold.split(X, y, groups)
 
         # Search for optimal value of hyperparameters
-        grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
+        # grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
+        grid_search = RandomizedSearchCV(self._est, param_distributions=param_space, n_iter=3, cv=cv, verbose=3, random_state=42)
         grid_search.fit(X, y)
         best_params = grid_search.best_params_
         est = grid_search.best_estimator_
@@ -325,18 +327,18 @@ class SklearnRidge(BaseSklearnModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         
-        # max_ = len(train_dataset.feature_names)
-        # nfeat = np.trunc(np.arange(0.2,0.75,0.1)*max_).astype(int).tolist()
+        max_ = len(train_dataset.columns)
+         # nfeat = np.trunc(np.arange(0.2,0.75,0.1)*max_).astype(int).tolist()
         # print(nfeat, max_, train_dataset.feature_names)
         
         fit_params["select_features"] = True
         fit_params["optimize_hyperparameters"] = True
         fit_params["param_space"] = {
-            "estimator__alpha": [0.01, 0.1, 1.0, 5.0, 10.0],
-            "selector__estimator__alpha": [0.1, 1.0, 5.0],
-            "selector__max_features": [20, 25, 30],
+            "estimator__alpha": uniform(0.01, 10),
+            "selector__estimator__alpha": uniform(0.1, 5),
+            "selector__max_features": randint(np.trunc(0.1*max_), np.trunc(0.5*max_)),
         }
-
+        
         super().fit(train_dataset, **fit_params)
 
 
@@ -363,11 +365,16 @@ class SklearnRandomForest(BaseSklearnModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
+        
         fit_params["optimize_hyperparameters"] = True
         fit_params["param_space"] = {
-            "estimator__n_estimators": [50, 100, 500],
+            'estimator__n_estimators': randint(50, 800),
+            'estimator__max_depth': randint(10, 50),
+            'estimator__min_samples_split': randint(2, 20),
+            'estimator__min_samples_leaf': randint(1, 10),
+            'estimator__max_features': uniform(1/3-0.2, 1/3+0.2),
         }
-
+        
         super().fit(train_dataset, **fit_params)
 
 # class SklearnMLP(BaseSklearnModel):
