@@ -14,9 +14,7 @@ from cybench.config import (
     FORECAST_LEAD_TIME
 )
 
-def save_loaded():
-    crop_it = "maize"
-    country_it = "FR"
+def save_loaded(crop_it, country_it):
     crop_country = crop_it + "_" + country_it
 
     dataset_ = Dataset.load(crop_country)
@@ -32,4 +30,7 @@ def save_loaded():
     filename = "yield_" + crop_it + "_" + country_it + ".csv"
     df_y.to_csv(os.path.join(PATH_DATA_DIR, "loaded", crop_it, country_it, filename), index=True)
 
-save_loaded()
+crop_it = "wheat"
+country_it = "DE"
+
+save_loaded(crop_it, country_it)
