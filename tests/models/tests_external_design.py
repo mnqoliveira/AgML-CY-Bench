@@ -35,7 +35,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
     '''
     crop_country = crop_it + "_" + country_it
 
-    all_years = list(range(2001, 2021))
+    all_years = list(range(2004, 2021))
     test_years = list(range(2015, 2021))
     train_years = [yr for yr in all_years if yr not in test_years]
     
@@ -138,9 +138,9 @@ def test_both(crop_it, country_it, tech_it, source_it):
     
     return metrics_, preds, train_data, test_data
 
-crop_l = ["wheat", "maize"]
+crop_l = ["wheat"]
 # crop_l = ["wheat"]
-country_l = ["NL"]
+country_l = ["NL", "FR", "ES", "DE"]
 # tech_l = ['skrid', 'ridres', 'rf']
 # tech_l = ['skrid', 'ridres']
 tech_l = ['naive', 'skrid', 'rf']
@@ -159,7 +159,7 @@ filename = run_name + ".csv"
 
 os.makedirs(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name))
 
-it = 2
+it = 1
 for it in range(comb.shape[0]):
     
     crop_it = comb.crop[it]
