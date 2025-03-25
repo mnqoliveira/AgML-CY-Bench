@@ -120,6 +120,7 @@ MAX_INPUT_YEAR = 2023
 
 # Soil properties
 SOIL_PROPERTIES = ["awc", "bulk_density"]  # , "drainage_class"]
+#SOIL_PROPERTIES = ["awc", "bulk_density", "drainage_class"]
 
 # Static predictors. Add more when available
 STATIC_PREDICTORS = SOIL_PROPERTIES
@@ -133,7 +134,8 @@ RS_FPAR = "fpar"
 RS_NDVI = "ndvi"
 
 # Soil moisture indicators: surface moisture, root zone moisture
-SOIL_MOISTURE_INDICATORS = ["ssm"]  # , "rsm"]
+# SOIL_MOISTURE_INDICATORS = ["ssm"]  # , "rsm"]
+SOIL_MOISTURE_INDICATORS = ["ssm", "rsm"]
 
 TIME_SERIES_INPUTS = {
     "meteo": METEO_INDICATORS,
