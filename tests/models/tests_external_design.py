@@ -69,8 +69,9 @@ def test_both(crop_it, country_it, tech_it, source_it):
             test_dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
         )
         # Check features are the same for training and test data
-        ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
+        ft_cols = [ft for ft in test_features.columns if ft not in [KEY_LOC, KEY_YEAR]]
         missing_features = [ft for ft in feat_cols_ if ft not in ft_cols]
+        
         for ft in missing_features:
             test_features[ft] = 0.0
 
@@ -129,6 +130,19 @@ def test_both(crop_it, country_it, tech_it, source_it):
         test_data = test_dataset
 
     model_.fit(train_data)
+    
+    features_sel = None
+    
+    if tech_it == "rf":
+        importances = model_._est.named_steps['estimator'].feature_importances_
+        importances = pd.Series(importances, index=model_._feature_cols).sort_values(ascending=False)
+        features_sel = importances.index.tolist() + importances.to_numpy().round(4).tolist()
+        
+    elif tech_it == "skrid":
+        selector = model_._est.named_steps["selector"]
+        indices = selector.get_support(indices=True)
+        features_sel = [model_._feature_cols[i] for i in indices]
+        
     model_preds, _ = model_.predict(test_data)
     metrics_ = evaluate_predictions(targets, model_preds)
     
@@ -136,7 +150,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
     preds[['adm_id', 'year']] = pd.DataFrame(preds['index'].tolist(), index=None)
     preds = preds.drop(columns=['index'])
     
-    return metrics_, preds, train_data, test_data
+    return metrics_, preds, features_sel, train_data, test_data
 
 crop_l = ["wheat"]
 # crop_l = ["wheat"]
@@ -152,7 +166,8 @@ comb = pd.DataFrame.from_records(itertools.product(*comb.values()), columns=comb
 comb.sort_values(by=['country', 'crop', 'tech', 'source'], ascending = [False, False, True, True], 
     inplace = True, ignore_index = True)
 
-col_names_ = ['normalized_rmse', 'mape', 'r2', 'technique', 'source', 'crop', 'country', 'time']
+col_names_ = ['normalized_rmse', 'mape', 'r2', 'technique', 
+'source', 'crop', 'country', 'time', 'features']
 
 run_name = "tests_" + str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S') )
 filename = run_name + ".csv"
@@ -167,7 +182,7 @@ for it in range(comb.shape[0]):
     tech_it = comb.tech[it]
     source_it = comb.source[it]
 
-    res_, preds_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
+    res_, preds_, feats_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
     
     results = pd.DataFrame([res_])
     
@@ -176,6 +191,7 @@ for it in range(comb.shape[0]):
     results["crop"] = crop_it
     results["country"] = country_it
     results["time"] = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
+    results["features"] = [feats_]
     
     header_ = None
     if it == 0:

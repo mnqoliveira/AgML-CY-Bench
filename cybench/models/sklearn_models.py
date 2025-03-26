@@ -170,7 +170,7 @@ class BaseSklearnModel(BaseModel):
 
         # Search for optimal value of hyperparameters
         # grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
-        grid_search = RandomizedSearchCV(self._est, param_distributions=param_space, n_iter=3, cv=cv, verbose=3, random_state=42)
+        grid_search = RandomizedSearchCV(self._est, param_distributions=param_space, n_iter=50, cv=cv, verbose=3, random_state=42)
         grid_search.fit(X, y)
         best_params = grid_search.best_params_
         est = grid_search.best_estimator_
