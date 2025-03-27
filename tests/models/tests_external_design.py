@@ -147,12 +147,13 @@ def test_both(crop_it, country_it, tech_it, source_it):
 
     model_preds, _ = model_.predict(test_data)
     metrics_ = evaluate_predictions(targets, model_preds)
+    metrics_["score"] = score
 
     preds = pd.DataFrame({"pred": model_preds, "obs": targets}, index = test_dataset.indices()).reset_index()
     preds[['adm_id', 'year']] = pd.DataFrame(preds['index'].tolist(), index=None)
     preds = preds.drop(columns=['index'])
     
-    return metrics_, preds, features_sel, score, train_data, test_data
+    return metrics_, preds, features_sel, train_data, test_data
 
 crop_l = ["wheat"]
 # crop_l = ["wheat"]
@@ -168,15 +169,15 @@ comb = pd.DataFrame.from_records(itertools.product(*comb.values()), columns=comb
 comb.sort_values(by=['country', 'crop', 'tech', 'source'], ascending = [False, False, True, True], 
     inplace = True, ignore_index = True)
 
-col_names_ = ['normalized_rmse', 'mape', 'r2', 'technique', 
-'source', 'crop', 'country', 'time', 'score', 'features']
+col_names_ = ['normalized_rmse', 'mape', 'r2', 'score', 'technique', 
+'source', 'crop', 'country', 'time', 'features']
 
 run_name = "tests_" + str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S') )
 filename = run_name + ".csv"
 
 os.makedirs(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name))
 
-it = 5
+it = 1
 for it in range(comb.shape[0]):
     
     crop_it = comb.crop[it]
@@ -184,8 +185,7 @@ for it in range(comb.shape[0]):
     tech_it = comb.tech[it]
     source_it = comb.source[it]
 
-    test_both(crop_it, country_it, tech_it, source_it)
-    res_, preds_, feats_, score_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
+    res_, preds_, feats_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
 
     results = pd.DataFrame([res_])
 
@@ -195,7 +195,6 @@ for it in range(comb.shape[0]):
     results["country"] = country_it
     results["time"] = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     results["features"] = [feats_]
-    results["score"] = score_
 
     header_ = None
     if it == 0:
