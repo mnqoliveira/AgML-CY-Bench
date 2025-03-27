@@ -11,7 +11,7 @@ source(here("load_files_f.R"))
 
 # Process -----------------------------------------------------------------
 crop_ <- "wheat"
-country_ <- "NL"
+country_ <- "ES"
 
 data_folder <- "../../data/loaded/"
 list_crops <- list.dirs(data_folder, full.names = FALSE)
@@ -142,3 +142,61 @@ dataset_mod <- dataset %>%
 filename <- paste0(crop_it, "_", country_it, ".csv")
 filepath <- paste0("../../data/features/2p/", filename)
 write.csv(dataset_mod, file=filepath, row.names = FALSE)
+
+
+# Feature selection -------------------------------------------------------
+# Define target variable and predictors
+target <- "yield"
+predictors <- setdiff(names(dataset_mod), target)
+ids <- c("adm_id", "year")
+predictors <- setdiff(predictors, c(ids, grep("flag", colnames(dataset_mod), value = TRUE)))
+dataset_mod <- data.frame(dataset_mod)
+
+# Compute absolute Spearman correlation matrix
+corr_matrix <- abs(cor(dataset_mod[predictors], method = "spearman"))
+target_corr <- abs(cor(dataset_mod[, c(target, predictors)], method = "spearman"))[target, -1]
+
+to_drop <- c()
+
+# Loop over all unique pairs of predictors
+comb <- combn(predictors, 2, simplify = FALSE)
+for (pair in comb) {
+  feat1 <- pair[1]
+  feat2 <- pair[2]
+  
+  # Skip if either feature is already marked for removal
+  if (feat1 %in% to_drop || feat2 %in% to_drop) next
+  
+  # Check correlation threshold
+  if (corr_matrix[feat1, feat2] > 0.7) {
+    if (target_corr[feat1] < target_corr[feat2]) {
+      to_drop <- c(to_drop, feat1)
+    } else {
+      to_drop <- c(to_drop, feat2)
+    }
+  }
+}
+
+selected_features <- setdiff(predictors, to_drop)
+final_features <- selected_features[target_corr[selected_features] >= 0.1]
+
+dataset_mod_ <- dataset_mod[, c(ids, selected_features, target)]
+
+# Save
+filename <- paste0(crop_it, "_", country_it, ".csv")
+filepath <- paste0("../../data/features/sel2p/", filename)
+write.csv(dataset_mod, file=filepath, row.names = FALSE)
+
+# Plot the heatmap using ggplot2
+plot_features <- c(final_features, target)
+corr <- cor(dataset_mod[, plot_features], method = "spearman")
+
+corr_df <- as.data.frame(as.table(corr)) %>%
+  rename(Feature1 = Var1, Feature2 = Var2, Correlation = Freq)
+
+ggplot(corr_df, aes(x = Feature1, y = Feature2, fill = Correlation)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  ggtitle("Spearman Correlation Heatmap")
