@@ -39,7 +39,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
     test_years = list(range(2015, 2021))
     train_years = [yr for yr in all_years if yr not in test_years]
     
-    if "orig" in source_it:
+    if (("cybench" in source_it) or ("monthly" in source_it)):
         
         dataset_ = Dataset.load(crop_country)
         train_years = [yr for yr in all_years if yr not in test_years]
@@ -48,7 +48,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
             )
         crop = dataset_.crop
         
-        if "mod" in source_it:
+        if "monthly" in source_it:
             train_features = skl_design(crop, train_dataset, "mod")
             test_features = skl_design(crop, test_dataset, "mod")
             
@@ -130,35 +130,37 @@ def test_both(crop_it, country_it, tech_it, source_it):
         test_data = test_dataset
 
     model_.fit(train_data)
-    
+
     features_sel = None
-    
+    score = None
+
     if tech_it == "rf":
         importances = model_._est.named_steps['estimator'].feature_importances_
         importances = pd.Series(importances, index=model_._feature_cols).sort_values(ascending=False)
         features_sel = importances.index.tolist() + importances.to_numpy().round(4).tolist()
-        
+        score = model_._est.named_steps['estimator'].oob_score_
+
     elif tech_it == "skrid":
         selector = model_._est.named_steps["selector"]
         indices = selector.get_support(indices=True)
         features_sel = [model_._feature_cols[i] for i in indices]
-        
+
     model_preds, _ = model_.predict(test_data)
     metrics_ = evaluate_predictions(targets, model_preds)
-    
+
     preds = pd.DataFrame({"pred": model_preds, "obs": targets}, index = test_dataset.indices()).reset_index()
     preds[['adm_id', 'year']] = pd.DataFrame(preds['index'].tolist(), index=None)
     preds = preds.drop(columns=['index'])
     
-    return metrics_, preds, features_sel, train_data, test_data
+    return metrics_, preds, features_sel, score, train_data, test_data
 
 crop_l = ["wheat"]
 # crop_l = ["wheat"]
 country_l = ["NL", "FR", "ES", "DE"]
 # tech_l = ['skrid', 'ridres', 'rf']
-# tech_l = ['skrid', 'ridres']
-tech_l = ['naive', 'skrid', 'rf']
-source_l = ["5periods", "2periods", "orig", "orig_mod"]
+tech_l = ['naive', 'rf']
+# tech_l = ['naive', 'skrid', 'rf']
+source_l = ["5periods", "2periods", "cybench", "monthly"]
 # source_l = ["2periods"]
 
 comb = {'crop': crop_l, 'country': country_l, 'tech': tech_l, 'source': source_l}
@@ -167,14 +169,14 @@ comb.sort_values(by=['country', 'crop', 'tech', 'source'], ascending = [False, F
     inplace = True, ignore_index = True)
 
 col_names_ = ['normalized_rmse', 'mape', 'r2', 'technique', 
-'source', 'crop', 'country', 'time', 'features']
+'source', 'crop', 'country', 'time', 'score', 'features']
 
 run_name = "tests_" + str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S') )
 filename = run_name + ".csv"
 
 os.makedirs(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name))
 
-it = 1
+it = 5
 for it in range(comb.shape[0]):
     
     crop_it = comb.crop[it]
@@ -182,17 +184,19 @@ for it in range(comb.shape[0]):
     tech_it = comb.tech[it]
     source_it = comb.source[it]
 
-    res_, preds_, feats_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
-    
+    test_both(crop_it, country_it, tech_it, source_it)
+    res_, preds_, feats_, score_, train_, test_ = test_both(crop_it, country_it, tech_it, source_it)
+
     results = pd.DataFrame([res_])
-    
+
     results["technique"] = tech_it
     results["source"] = source_it
     results["crop"] = crop_it
     results["country"] = country_it
     results["time"] = str(datetime.datetime.now().strftime('%Y%m%d_%H%M%S'))
     results["features"] = [feats_]
-    
+    results["score"] = score_
+
     header_ = None
     if it == 0:
         header_ = col_names_
@@ -201,12 +205,12 @@ for it in range(comb.shape[0]):
 
     file_it = "_".join([crop_it, country_it, tech_it, source_it]) + ".csv"
     preds_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
-    
+
     if tech_it != "naive":
-        file_it = "_".join(["train", crop_it, country_it, tech_it, source_it]) + ".csv"
+        file_it = "_".join(["train", crop_it, country_it, source_it]) + ".csv"
         train_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
-        
-        file_it = "_".join(["test", crop_it, country_it, tech_it, source_it]) + ".csv"
+
+        file_it = "_".join(["test", crop_it, country_it, source_it]) + ".csv"
         test_.to_csv(os.path.join(PATH_OUTPUT_DIR, "agmip10", run_name, file_it), index=False, mode='w')
-    
+
     print(crop_it, country_it, tech_it, source_it, sep = ", ")
