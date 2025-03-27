@@ -82,8 +82,12 @@ def test_both(crop_it, country_it, tech_it, source_it):
         # Test 2: Test with predesigned features
         if source_it == "2periods":
             data_path = os.path.join(PATH_DATA_DIR, "features", "2p")
-        else:
+        elif source_it == "2periodsFS":
+            data_path = os.path.join(PATH_DATA_DIR, "features", "sel2p")
+        elif source_it == "5periods":
             data_path = os.path.join(PATH_DATA_DIR, "features", "5p")
+        elif source_it == "5periodsFS":
+            data_path = os.path.join(PATH_DATA_DIR, "features", "sel5p")
         
         train_csv = os.path.join(data_path, (crop_country + ".csv"))
         train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
@@ -157,11 +161,11 @@ def test_both(crop_it, country_it, tech_it, source_it):
 
 crop_l = ["wheat"]
 # crop_l = ["wheat"]
-country_l = ["NL", "FR", "ES", "DE"]
+country_l = ["FR", "ES", "DE"]
 # tech_l = ['skrid', 'ridres', 'rf']
 tech_l = ['naive', 'rf']
 # tech_l = ['naive', 'skrid', 'rf']
-source_l = ["5periods", "2periods", "cybench", "monthly"]
+source_l = ["5periodsFS", "2periodsFS", "5periods", "2periods", "cybench", "monthly"]
 # source_l = ["2periods"]
 
 comb = {'crop': crop_l, 'country': country_l, 'tech': tech_l, 'source': source_l}
