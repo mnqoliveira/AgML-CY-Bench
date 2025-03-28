@@ -6,7 +6,7 @@ libraries <- c("here", "tidyverse", "data.table")
 lapply(libraries, require, character.only = TRUE)
 
 # Functions ---------------------------------------------------------------
-truncate_series <- function(x, calendar){
+truncate_series <- function(x, calendar, keep_date=FALSE){
   
   x_mod <- merge(x, calendar, all = TRUE)
   x_mod <- x_mod[, keep := (date >= sos_date) & (date <= eos_date)]
@@ -14,8 +14,14 @@ truncate_series <- function(x, calendar){
   
   # Create das
   x_mod[, das := as.numeric(date - sos_date) + 1, by = c("adm_id", "year")]
-  x_mod <- x_mod[, !c("date", "sos_date", "eos_date", "cutoff_date",
+  x_mod <- x_mod[, !c("sos_date", "eos_date", "cutoff_date",
                       "season_window_length")]
+  
+  if(!keep_date){
+      
+      x_mod <- x_mod[, !c("date")]
+      
+  }
   
   return(x_mod)
   
