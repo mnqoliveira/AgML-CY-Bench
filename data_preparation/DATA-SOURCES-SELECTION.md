@@ -2,7 +2,7 @@
 ## Weather variables and moisture indicators
 | Source | Considered variables | Temporal frequency | Spatial resolution | Caveats |
 |--------|----------------------|--------------------|--------------------|---------|
-| **[AgERA5](https://cds.climate.copernicus.eu/cdsapp#!/dataset/sis-agrometeorological-indicators?tab=overview)** | temp\_2m, prec, rad, wspd\_10m, relh\_2m | Daily                       | 0.1°              | Not bias-corrected                                  |
+| **[AgERA5](https://cds.climate.copernicus.eu/cdsapp#!/dataset/sis-agrometeorological-indicators?tab=overview)** | temp\_2m, prec, rad, wspd\_10m, relh\_2m | Daily                       | 0.1°              |                                   |
 | **[FAO-AQUASTAT](https://data.apps.fao.org/static/data/index.html?prefix=static%2Fdata%2Fc3s%2FAGERA5_ET0)**    | et0                                      | Daily                       | 0.1°              | Not bias-corrected                                  |
 |**[GLDAS](https://ldas.gsfc.nasa.gov/gldas/model-output)**                                                       | ssm, rsm                                 | Daily                       | 0.25°             | Latency of 2 to 6 months                            |
 | [ERA5](https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels)                        | temp\_2m, prec, rad, wspd\_10m, relh\_2m | Hourly                      | 0.25°             | Not bias-corrected                                  |
