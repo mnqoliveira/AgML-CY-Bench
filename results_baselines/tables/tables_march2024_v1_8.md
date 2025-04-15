@@ -1,8 +1,10 @@
+Reported results reflect the median computed over folds in a leave-one-year-out cross-validation scheme.
+
 ## maize normalized_rmse
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| maize | ALL | **19.83** | 23.81 | 21.95 | 33.64 | 23.94 | 53.78 |
+| *maize* | *ALL* | ***19.83*** | *23.81* | *21.95* | *33.64* | *23.94* | *53.78* |
 | maize | AO | 31.63 | 32.17 | 33.23 | 33.60 | **31.53** | 47.61 |
 | maize | AR | **24.28** | 26.05 | 25.54 | 25.62 | 25.61 | 36.96 |
 | maize | AT | 12.66 | 15.32 | 12.52 | 23.71 | **10.82** | 19.96 |
@@ -46,7 +48,7 @@
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| maize | ALL | **18.49** | 20.76 | 19.89 | 31.83 | 22.15 | 56.73 |
+| *maize* | *ALL* | ***18.49*** | *20.76* | *19.89* | *31.83* | *22.15* | *56.73* |
 | maize | AO | 29.51 | 33.71 | 36.57 | 36.98 | **27.07** | 48.07 |
 | maize | AR | 29.25 | **26.85** | 27.85 | 29.80 | 32.46 | 60.53 |
 | maize | AT | 11.34 | 13.18 | 10.28 | 21.69 | **8.92** | 17.73 |
@@ -90,7 +92,7 @@
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| maize | ALL | **0.13** | 0.05 | 0.05 | -0.12 | -0.05 | -3.81 |
+| *maize* | *ALL* | ***0.13*** | *0.05* | *0.05* | *-0.12* | *-0.05* | *-3.81* |
 | maize | AO | **0.13** | -0.33 | -0.40 | -0.46 | 0.11 | -1.90 |
 | maize | AR | **0.61** | 0.52 | 0.54 | 0.47 | 0.48 | 0.05 |
 | maize | AT | -0.02 | -0.37 | -0.11 | -1.85 | **0.13** | -2.22 |
@@ -133,7 +135,7 @@
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| wheat | ALL | 14.83 | 15.90 | **14.63** | 22.01 | 17.05 | 56.93 |
+| *wheat* | *ALL* | *14.83* | *15.90* | ***14.63*** | *22.01* | *17.05* | *56.93* |
 | wheat | AR | **23.98** | 27.21 | 29.87 | 30.18 | 31.44 | 40.33 |
 | wheat | AT | **13.01** | 15.90 | 14.63 | 18.37 | 14.44 | 76.81 |
 | wheat | AU | **80.69** | 89.65 | 95.79 | 139.24 | 89.08 | 134.74 |
@@ -168,7 +170,7 @@
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| wheat | ALL | 14.46 | 14.74 | **13.74** | 20.80 | 15.11 | 53.25 |
+| *wheat* | *ALL* | *14.46* | *14.74* | ***13.74*** | *20.80* | *15.11* | *53.25* |
 | wheat | AR | **22.58** | 24.75 | 26.81 | 28.93 | 28.81 | 32.98 |
 | wheat | AT | 11.98 | 13.24 | **11.65** | 15.90 | 12.44 | 76.31 |
 | wheat | AU | **61.40** | 69.67 | 75.03 | 162.81 | 69.03 | 157.84 |
@@ -203,7 +205,7 @@
 
 | crop | country | AverageYieldModel | LinearTrend | RFRes | RidgeRes | SklearnRF | SklearnRidge |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| wheat | ALL | **0.38** | 0.24 | 0.17 | -0.48 | 0.09 | -10.69 |
+| *wheat* | *ALL* | ***0.38*** | *0.24* | *0.17* | *-0.48* | *0.09* | *-10.69* |
 | wheat | AR | **0.68** | 0.55 | 0.48 | 0.48 | 0.46 | 0.23 |
 | wheat | AT | 0.06 | -0.06 | 0.12 | -0.26 | **0.16** | -24.41 |
 | wheat | AU | -0.20 | -0.38 | -0.48 | -3.03 | **-0.19** | -1.61 |
