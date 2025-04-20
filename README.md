@@ -82,6 +82,9 @@ The terms used to reference different varieties or seasons of maize/wheat have b
 | [Mexico](data_preparation/crop_statistics_MX/README.md)              | White/Yellow Corn | N/A                                   |
 | [USA](data_preparation/crop_statistics_US/README.md)                 | Grain Corn        | Winter Wheat                          |
 
+#### Targets
+![Yield Map](doc/images/yield_wheat_maize.gif)
+
 ### Getting started
 
 `cybench` is an open source python library to load CY-Bench dataset and run the CY-Bench tasks.

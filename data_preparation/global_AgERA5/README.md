@@ -33,7 +33,7 @@ Abdelrahman Amr Ali, Dilli R. Paudel
 | Versions                 | 1.0, 1.1                                             |
 | Update frequency         | Monthly                                              |
 
-** Main variables
+## Main variables
 
 | Name                                 | Units         | Description |
 |--------------------------------------|---------------|-------------|
