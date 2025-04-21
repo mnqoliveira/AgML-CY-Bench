@@ -7,6 +7,7 @@ lapply(libraries, require, character.only = TRUE)
 
 # Functions ---------------------------------------------------------------
 truncate_series <- function(x, calendar, keep_date=FALSE){
+truncate_series <- function(x, calendar, keep_date=FALSE){
   
   x_mod <- merge(x, calendar, all = TRUE)
   x_mod <- x_mod[, keep := (date >= sos_date) & (date <= eos_date)]
@@ -16,6 +17,12 @@ truncate_series <- function(x, calendar, keep_date=FALSE){
   x_mod[, das := as.numeric(date - sos_date) + 1, by = c("adm_id", "year")]
   x_mod <- x_mod[, !c("sos_date", "eos_date", "cutoff_date",
                       "season_window_length")]
+  
+  if(!keep_date){
+      
+      x_mod <- x_mod[, !c("date")]
+      
+  }
   
   if(!keep_date){
       
