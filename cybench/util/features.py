@@ -458,9 +458,9 @@ def design_features_mod(
     # weather_df["cum_cwb"] = weather_df.groupby(index_cols, observed=True)[
     #     "cwb"
     # ].cumsum()
-    # weather_df["cum_prec"] = weather_df.groupby(index_cols, observed=True)[
-    #     "prec"
-    # ].cumsum()
+    weather_df["cum_prec"] = weather_df.groupby(index_cols, observed=True)[
+        "prec"
+    ].cumsum()
 
     if fpar_df is not None:
         fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
@@ -481,21 +481,20 @@ def design_features_mod(
     # , "cum_cwb"
     ]
     # max_weather_cols = ["cum_gdd", "cum_prec"]
+    max_weather_cols = ["cum_prec"]
     avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
-    # max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
+    max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
     avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
-    # max_ft_cols = {ind: "max_" + ind for ind in max_weather_cols}
+    max_ft_cols = {ind: "max_" + ind for ind in max_weather_cols}
 
     # NOTE: combining max and avg aggregation
     weather_aggrs = {
-        **avg_weather_aggrs
-        # ,
-        # **max_weather_aggrs,
+        **avg_weather_aggrs,
+        **max_weather_aggrs,
     }
 
     weather_fts = _aggregate_by_period(
-        weather_df, index_cols, "period", weather_aggrs, {**avg_ft_cols
-        # , **max_ft_cols
+        weather_df, index_cols, "period", weather_aggrs, {**avg_ft_cols, **max_ft_cols
         }
     )
 

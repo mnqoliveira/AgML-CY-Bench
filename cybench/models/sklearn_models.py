@@ -345,8 +345,9 @@ class SklearnRidge(BaseSklearnModel):
 class SklearnRandomForest(BaseSklearnModel):
     def __init__(self, feature_cols: list = None):
         random_forest = RandomForestRegressor(
-            oob_score=True, n_estimators=100, min_samples_leaf=5,
-            max_features="log2", 
+            oob_score=True, n_estimators=100, min_samples_leaf=5
+            # ,
+            # max_features="sqrt", 
         )
 
         kwargs = {
@@ -374,7 +375,8 @@ class SklearnRandomForest(BaseSklearnModel):
             'estimator__min_samples_split': randint(2, 20),
             'estimator__min_samples_leaf': randint(1, 10),
             'estimator__max_samples': uniform(0.2, 0.8),
-            # 'estimator__max_features': uniform(1/3-0.2, 1/3+0.2),
+            'estimator__max_features': uniform(1/3-0.2, 1/3+0.2)
+            
         }
         
         super().fit(train_dataset, **fit_params)

@@ -7,9 +7,9 @@ import itertools
 
 from cybench.datasets.dataset import Dataset
 from cybench.models.naive_models import AverageYieldModel
-from cybench.models.trend_models import TrendModel
+# from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.residual_models import RidgeRes
+# from cybench.models.residual_models import RidgeRes
 # from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import evaluate_predictions
 
@@ -73,7 +73,7 @@ def test_both(crop_it, country_it, tech_it, source_it):
         missing_features = [ft for ft in feat_cols_ if ft not in ft_cols]
         
         for ft in missing_features:
-            test_features[ft] = 0.0
+            test_features[ft] = -999
 
         test_features = test_features[[KEY_LOC, KEY_YEAR] + feat_cols_]
         test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])

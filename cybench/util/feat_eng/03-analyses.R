@@ -41,32 +41,50 @@ ggplot() +
   theme(axis.text.x = element_text(angle= 90))
 
 # Metrics -----------------------------------------------------------------
-path_file <- "../../output/agmip10/tests_20250327_221514.csv"
-path_folder <- "../../output/agmip10/tests_20250327_221514/"
+path_file <- "../../output/agmip10/tests_20250331_000029.csv"
+path_folder <- "../../output/agmip10/tests_20250331_000029/"
 
 metrics_ <- read.csv(path_file)
 metrics <- metrics_ %>%
-  mutate(r2 = if_else(r2 < -1, -1, r2),
-         score = as.numeric(score), it = NA, features_ = NA) %>%
-  pivot_longer(c("normalized_rmse", "mape", "r2", "score"),
-               names_to = "metric", values_to = "value") %>%
-  mutate(eval = if_else(metric == "score", "oob", "test"),
-         metric = if_else(metric == "score", "r2", metric)) %>%
-  filter(technique != "skrid", country != "NL", eval != "oob")
+    mutate(r2 = if_else(r2 < -1, -1, r2),
+           score = as.numeric(score), it = NA, features_ = NA) %>%
+    pivot_longer(c("normalized_rmse", "mape", "r2", "score"),
+                 names_to = "metric", values_to = "value") %>%
+    mutate(eval = if_else(metric == "score", "oob", "test"),
+           metric = if_else(metric == "score", "r2", metric)) %>%
+    filter(technique != "skrid", country != "NL", 
+           eval != "oob"
+           ) %>%
+    mutate()
 
 ggplot() +
-  facet_grid(metric ~ country, scales = "free") +
-  geom_col(data = filter(metrics, technique == "rf"), 
-           aes(x = source, y = value, fill = eval), position = "dodge") +
-  geom_hline(data = filter(metrics, technique == "naive", source == "2periods"), 
-           aes(yintercept = value)) 
+    facet_grid(metric ~ country, scales = "free",
+               labeller = labeller(metric = c("mape" = "MAPE", 
+                                              "normalized_rmse" = "nRMSE [%]",
+                                              "r2" = "r2 score"),
+                                   country = c("DE" = "Germany",
+                                               "FR" = "France",
+                                               "ES" = "Spain")),
+               switch = "y"
+               ) +
+    geom_col(data = filter(metrics, technique == "rf"), 
+             aes(x = source, y = value
+                 # , fill = eval
+                 ), position = "dodge") +
+    geom_hline(data = filter(metrics, technique == "naive", source == "2periods"), 
+               aes(yintercept = value)) +
+    labs(x = "Design", y = "") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+
+ggsave("E:/documentos/pesquisa/agml/guidelines/performance.png",
+       width = 20, height = 16, units = "cm")
 
 # Outputs -----------------------------------------------------------------
 files_list <- list.files(path_folder, full.names = TRUE)
 
 feat_df_l <- error_l <- train_l <- test_l<- list()
 it <- 19
-metrics_nofeat <- select(metrics_, -features, -features_)
 
 for (it in 1:nrow(metrics_)){
   
@@ -77,14 +95,13 @@ for (it in 1:nrow(metrics_)){
 
     feat_it <- unlist(metrics_[it, "features"])
     feat_it <- unlist(strsplit(gsub("\\[|\\]| |'", "", feat_it), ","))
+    
     feat_df <- data.frame(features = feat_it[1:(length(feat_it)/2)],
-                          imp = feat_it[(length(feat_it)/2 + 1):length(feat_it)])
-    feat_df <- feat_df %>%
+                          imp = feat_it[(length(feat_it)/2 + 1):length(feat_it)]) %>%
       mutate(imp_cum = cumsum(imp), it = it,
-             features = gsub(">|<", "\\.", features)) 
-    # %>%
-    #   # filter((imp_cum <= 0.5) | (row_number() == 1)) %>%
-    #   filter((row_number() <= 15))
+             features = gsub(">|<", "\\.", features)) %>%
+      # filter((imp_cum <= 0.5) | (row_number() == 1)) %>%
+      filter((row_number() <= 30))
 
     feat_df_l[[it]] <- feat_df
 
@@ -118,7 +135,7 @@ for (it in 1:nrow(metrics_)){
     unlist()
   
   temp <- train %>%
-    select("adm_id", "year", all_of(feat), any_of(starts_with("tt"))) %>%
+    # select("adm_id", "year", all_of(feat), any_of(starts_with("tt"))) %>%
     mutate(crop = metrics_$crop[it], country = metrics_$country[it],
            source = metrics_$source[it])
     
@@ -136,7 +153,7 @@ for (it in 1:nrow(metrics_)){
   
   test <- read.csv(test_path)
   temp <- test %>%
-    select("adm_id", "year", all_of(feat), any_of(starts_with("tt"))) %>%
+    # select("adm_id", "year", all_of(feat), any_of(starts_with("tt"))) %>%
     mutate(crop = metrics_$crop[it], country = metrics_$country[it],
            source = metrics_$source[it])
   
@@ -174,14 +191,20 @@ errors <- errors_ %>%
 
 ggplot() +
   facet_grid(country ~ year) +
-  geom_violin(data = errors, aes(x = as.factor(features), y=error)) +
+  geom_boxplot(data = errors, aes(x = as.factor(features), y=error)) +
   theme(axis.text.x = element_text(angle= 90))
 
 # Count feature types -----------------------------------------------------
-count_feat <- metrics_ %>%
-  select(source, crop, country, features_) %>%
-  separate_rows(features_, sep = ", ") %>%
-  mutate(type = str_extract(features_, 
+metrics_nofeat <- select(metrics_, -features, -features_, -time)
+
+featsel <- rbindlist(feat_df_l) %>%
+    left_join(select(metrics_nofeat, -normalized_rmse, -mape, -r2, -score)) %>%
+    arrange(desc(imp))
+
+count_feat <- featsel %>%
+    select(source, crop, country, features) %>%
+    filter(country == "DE") %>%
+    mutate(type = str_extract(features, 
                             "prec|tavg|tmin|tmax|rad|fpar|ndvi|gdd|ssm|bulk"))
 
 count_feat <- table(count_feat$type, count_feat$source) %>%
@@ -236,12 +259,19 @@ test_all <- rbindlist(test_l, fill = TRUE) %>%
 features <- rbind(train_all, test_all)
 
 country_ <- "DE"
+year_ <- 2009
 
-features_ <- filter(features, country == country_, crop == "wheat")
-pheno2p <- filter(features_, source == "2periods", country == country_)
+features_ <- filter(features, year %in% year_, country == country_, crop == "wheat")
+pheno2p <- filter(features_, year %in% year_, source == "2periods", country == country_)
 
 crop_country <- meteo %>%
-    filter(country == country_, crop == "wheat", year <= 2020)
+    filter(country == country_, year %in% year_, 
+           crop == "wheat", year <= 2020) 
+# %>%
+#     group_by(adm_id, year) %>%
+#     arrange(date) %>%
+#     mutate(prec_cum = cumsum(prec)) %>%
+#     ungroup()
 
 dates_vline <- crop_country %>%
     select(adm_id, year, date, das) %>%
@@ -251,56 +281,72 @@ dates_vline <- crop_country %>%
            month_ = month(date)) %>%
     ungroup() %>%
     filter(!is.na(vline_))
-    
+
+variable <- "tmin"
+stat <- "mean"
+feat_sel_it <- filter(metrics_nofeat, crop == "wheat", country == country_,
+                      source == "monthly", technique == "rf") %>%
+    pull(it)
+feat_sel <- feat_df_l[[feat_sel_it]] %>%
+    pull(features)
 monthly <- features_ %>%
-    filter(source == "monthly", country == country_) %>%
-    select(adm_id, year, contains("_tmin")) %>%
-    pivot_longer(contains("tmin"), names_to = "month_", values_to = "tmin") %>%
-    filter(!is.na(tmin)) %>%
+    filter(source == "monthly") %>%
+    select(adm_id, year, any_of(feat_sel)) %>%
+    arrange(adm_id, year) %>%
+    select(adm_id, year, contains(variable)) %>%
+    select(adm_id, year, contains(stat)) %>%
+    pivot_longer(contains(variable), names_to = "month_", 
+                 values_to = variable) %>%
+    filter(!is.na(!!!variable)) %>%
     mutate(month_ = as.numeric(str_extract(month_, "[0-9]+")),
            period = paste0("m", str_pad(month_, 2, "left", "0"))) %>%
     left_join(dates_vline) %>%
-    filter(!is.na(das)) %>%
-    pivot_wider(names_from = period, values_from = vline_)
+    filter(!is.na(das)) 
 
 ggplot() +
-  facet_wrap("year", scales = "free") +
-  geom_line(data = crop_country, aes(x = das, y = tmin, group = adm_id), 
-            colour = "darkblue", alpha = 0.01) +
-  geom_vline(data = pheno2p, aes(xintercept = p01), alpha = 0.3) +
-    geom_vline(data = pheno2p, aes(xintercept = p02), alpha = 0.3) +
-  geom_point(data = pheno2p, aes(x = p02, y = tmin_avg_2), colour = "blue") +
-    geom_vline(data = filter(dates_vline, month_ == 5), 
-               aes(xintercept = vline_), alpha = 0.3, color = "purple") +
-  geom_point(data = monthly, aes(x = m06, y = tmin), colour = "plum")
+    facet_wrap("year", scales = "free") +
+    geom_line(data = crop_country, aes(x = das, y = tmin, group = adm_id), 
+              alpha = 0.01) +
+    geom_vline(data = pheno2p, aes(xintercept = p01), colour = "darkblue", alpha = 0.6) +
+    geom_vline(data = pheno2p, aes(xintercept = p02), colour = "darkblue", alpha = 0.6) +
+    geom_point(data = pheno2p, aes(x = p01, y = tmin_avg_1), colour = "blue") +
+    geom_point(data = pheno2p, aes(x = p02, y = tmin_avg_2), colour = "blue") +
+    geom_vline(data = dates_vline, 
+               aes(xintercept = vline_), color = "purple") +
+    geom_point(data = monthly, aes(x = vline_, y = tmin), colour = "plum") +
+    labs(x = "DAP", y = "Average minimum temperature [oC]") +
+    theme_classic()
 
-# Raw data ----------------------------------------------------------------
+ggsave("E:/documentos/pesquisa/agml/guidelines/tmin.png",
+       width = 15, height = 10, units = "cm")
 
-# Other feature
-for (it in 1:length(original_files)){
-  
-  crop <- str_extract(files_names[it], "maize|wheat")
-  country <- str_extract(files_names[it], "ES|DE|FR")
-  crop_country <- paste(crop, country, sep ="_")
-  
-  if(grepl("ndvi", files_names[it])){
-    
-   calendar <- calendar_l[[crop_country]]
-    
-  temp <- fread(original_files[it])
-  temp <- truncate_series(x=copy(temp), calendar)
-    
-  ndvi_l[[crop_country]] <- temp %>%
-    mutate(crop = crop, country = country)
-    
-  }
-  
-}
-
-
-ndvi <- rbindlist(ndvi_l) 
-rm(ndvi_l)
-
+# # Raw data ----------------------------------------------------------------
+# 
+# # Other feature
+# for (it in 1:length(original_files)){
+#   
+#   crop <- str_extract(files_names[it], "maize|wheat")
+#   country <- str_extract(files_names[it], "ES|DE|FR")
+#   crop_country <- paste(crop, country, sep ="_")
+#   
+#   if(grepl("ndvi", files_names[it])){
+#     
+#    calendar <- calendar_l[[crop_country]]
+#     
+#   temp <- fread(original_files[it])
+#   temp <- truncate_series(x=copy(temp), calendar)
+#     
+#   ndvi_l[[crop_country]] <- temp %>%
+#     mutate(crop = crop, country = country)
+#     
+#   }
+#   
+# }
+# 
+# 
+# ndvi <- rbindlist(ndvi_l) 
+# rm(ndvi_l)
+# 
 # ggplot() +
 #   facet_grid(crop ~ country, scales = "free") +
 #   geom_boxplot(data = predictor, aes(x = as.factor(year), y = tavg), 
@@ -315,50 +361,50 @@ rm(ndvi_l)
 #                                 colour = as.factor(year), fill = as.factor(year)))
 
 # From raw features -------------------------------------------------------
-path_ <- "../../data/features/2p/"
-files_list <- list.files(path_, recursive = TRUE, full.names = TRUE)
-
-features_l <- list()
-
-for (it in 1:length(files_list)){
-
-  # Weather data
-  crop <- str_extract(files_list[it], "maize|wheat")
-  country <- str_extract(files_list[it], "FR|DE|ES")
-
-  temp_ <- fread(files_list[it])
-
-  temp <- temp_ %>%
-    mutate(crop = crop, country = country) %>%
-    pivot_longer(starts_with(("tt")), names_to = "tt", values_to = "das") %>%
-    mutate(tt = as.numeric(gsub("tt", "", tt))) %>%
-    group_by(adm_id, year) %>%
-    mutate(tt = paste0("p0", rank(tt))) %>%
-    ungroup() %>%
-    pivot_wider(names_from = "tt", values_from = "das")
-
-  features_l[[files_names[[it]]]] <- temp
-
-}
-
-features <- rbindlist(features_l) %>%
-  filter(year >= 2004, year <= 2020)
-
-rm(features_l)
-
-crop_country <- filter(meteo, 
-                       #country == "DE", crop == "wheat", 
-                       year <= 2020)
-features_ <- filter(features, country == "DE", crop == "wheat")
-
-ggplot() +
-  facet_wrap("year", scales = "free") +
-  geom_smooth(data = crop_country, aes(x = das, y = tavg), colour = "darkblue") +
-  geom_vline(data = features_, aes(xintercept = p01), alpha = 0.3) +
-  # geom_point(data = features_, aes(x = p01, y = tmin_min_1), colour = "darkblue") +
-  geom_point(data = features_, aes(x = p01, y = tavg_avg_1), colour = "darkgreen") +
-  geom_vline(data = features_, aes(xintercept = p02), alpha = 0.3) +
-  # geom_point(data = features_, aes(x = p02, y = tmin_min_2), colour = "darkblue") +
-  geom_point(data = features_, aes(x = p02, y = tavg_avg_2), colour = "darkgreen")
-
-
+# path_ <- "../../data/features/2p/"
+# files_list <- list.files(path_, recursive = TRUE, full.names = TRUE)
+# 
+# features_l <- list()
+# 
+# for (it in 1:length(files_list)){
+# 
+#   # Weather data
+#   crop <- str_extract(files_list[it], "maize|wheat")
+#   country <- str_extract(files_list[it], "FR|DE|ES")
+# 
+#   temp_ <- fread(files_list[it])
+# 
+#   temp <- temp_ %>%
+#     mutate(crop = crop, country = country) %>%
+#     pivot_longer(starts_with(("tt")), names_to = "tt", values_to = "das") %>%
+#     mutate(tt = as.numeric(gsub("tt", "", tt))) %>%
+#     group_by(adm_id, year) %>%
+#     mutate(tt = paste0("p0", rank(tt))) %>%
+#     ungroup() %>%
+#     pivot_wider(names_from = "tt", values_from = "das")
+# 
+#   features_l[[files_names[[it]]]] <- temp
+# 
+# }
+# 
+# features <- rbindlist(features_l) %>%
+#   filter(year >= 2004, year <= 2020)
+# 
+# rm(features_l)
+# 
+# crop_country <- filter(meteo, 
+#                        #country == "DE", crop == "wheat", 
+#                        year <= 2020)
+# features_ <- filter(features, country == "DE", crop == "wheat")
+# 
+# ggplot() +
+#   facet_wrap("year", scales = "free") +
+#   geom_smooth(data = crop_country, aes(x = das, y = tavg), colour = "darkblue") +
+#   geom_vline(data = features_, aes(xintercept = p01), alpha = 0.3) +
+#   # geom_point(data = features_, aes(x = p01, y = tmin_min_1), colour = "darkblue") +
+#   geom_point(data = features_, aes(x = p01, y = tavg_avg_1), colour = "darkgreen") +
+#   geom_vline(data = features_, aes(xintercept = p02), alpha = 0.3) +
+#   # geom_point(data = features_, aes(x = p02, y = tmin_min_2), colour = "darkblue") +
+#   geom_point(data = features_, aes(x = p02, y = tavg_avg_2), colour = "darkgreen")
+# 
+# 
